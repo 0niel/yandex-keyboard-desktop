@@ -13,3 +13,10 @@ class ProcessTextEvent extends TextEvent {
   @override
   List<Object> get props => [text, type];
 }
+
+class ClearTextEvent extends TextEvent {
+  const ClearTextEvent();
+
+  @override
+  List<Object> get props => [];
+}

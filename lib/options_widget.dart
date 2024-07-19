@@ -1,3 +1,4 @@
+import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import 'package:logger/logger.dart';
 
@@ -13,51 +14,32 @@ class OptionsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = ElevatedButton.styleFrom(
-      backgroundColor: const Color(0xFF111827),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(4.0),
+    final simpleCommandBarItems = <fluent.CommandBarItem>[
+      fluent.CommandBarButton(
+        icon: const Icon(fluent.FluentIcons.emoji),
+        label: const Text('Emojify'),
+        onPressed: () {
+          logger.i("Emojify button pressed");
+          processClipboardText(context, 'emojify');
+        },
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-      textStyle: const TextStyle(
-        fontSize: 14.0,
-        fontWeight: FontWeight.w500,
-        color: Colors.white,
+      fluent.CommandBarButton(
+        icon: const Icon(fluent.FluentIcons.edit),
+        label: const Text('Улучшить'),
+        onPressed: () {
+          logger.i("Rewrite button pressed");
+          processClipboardText(context, 'rewrite');
+        },
       ),
-    );
+    ];
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                style: style,
-                onPressed: () {
-                  logger.i("Emojify button pressed");
-                  processClipboardText(context, 'emojify');
-                },
-                icon: const Icon(Icons.emoji_emotions),
-                label: const Text('Emojify', textAlign: TextAlign.center),
-              ),
-            ),
-            const SizedBox(width: 4.0),
-            Expanded(
-              child: ElevatedButton.icon(
-                style: style,
-                onPressed: () {
-                  logger.i("Rewrite button pressed");
-                  processClipboardText(context, 'rewrite');
-                },
-                icon: const Icon(Icons.edit),
-                label: const Text('Улучшить', textAlign: TextAlign.center),
-              ),
-            ),
-          ],
-        ),
-      ],
+    return fluent.CommandBarCard(
+      backgroundColor: fluent.Colors.white,
+      child: fluent.CommandBar(
+        primaryItems: [
+          ...simpleCommandBarItems,
+        ],
+      ),
     );
   }
 }

@@ -7,6 +7,7 @@ import 'text_state.dart';
 class TextBloc extends Bloc<TextEvent, TextState> {
   TextBloc() : super(TextInitial()) {
     on<ProcessTextEvent>(_onProcessTextEvent);
+    on<ClearTextEvent>((event, emit) => emit(TextInitial()));
   }
 
   Future<void> _onProcessTextEvent(ProcessTextEvent event, Emitter<TextState> emit) async {
