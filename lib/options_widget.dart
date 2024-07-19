@@ -14,18 +14,22 @@ class OptionsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final brightness = fluent.FluentTheme.of(context).brightness;
+    final backgroundColor = brightness == Brightness.dark ? fluent.Colors.grey[170] : fluent.Colors.white;
+    final textColor = brightness == Brightness.dark ? fluent.Colors.white : fluent.Colors.grey[170];
+
     final simpleCommandBarItems = <fluent.CommandBarItem>[
       fluent.CommandBarButton(
-        icon: const Icon(fluent.FluentIcons.emoji),
-        label: const Text('Emojify'),
+        icon: Icon(fluent.FluentIcons.emoji, color: textColor),
+        label: Text('Emojify', style: TextStyle(color: textColor)),
         onPressed: () {
           logger.i("Emojify button pressed");
           processClipboardText(context, 'emojify');
         },
       ),
       fluent.CommandBarButton(
-        icon: const Icon(fluent.FluentIcons.edit),
-        label: const Text('Улучшить'),
+        icon: Icon(fluent.FluentIcons.edit, color: textColor),
+        label: Text('Улучшить', style: TextStyle(color: textColor)),
         onPressed: () {
           logger.i("Rewrite button pressed");
           processClipboardText(context, 'rewrite');
@@ -34,7 +38,7 @@ class OptionsWidget extends StatelessWidget {
     ];
 
     return fluent.CommandBarCard(
-      backgroundColor: fluent.Colors.white,
+      backgroundColor: backgroundColor,
       child: fluent.CommandBar(
         primaryItems: [
           ...simpleCommandBarItems,

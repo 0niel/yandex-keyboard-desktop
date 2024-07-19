@@ -28,15 +28,21 @@ class _LoadingAnimationState extends State<LoadingAnimation> with SingleTickerPr
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final brightness = fluent.FluentTheme.of(context).brightness;
+    final backgroundColor = brightness == Brightness.dark ? fluent.Colors.grey[170] : fluent.Colors.white;
+    final textColor = brightness == Brightness.dark ? fluent.Colors.white : fluent.Colors.grey[170];
+
+    return Container(
+      color: backgroundColor, // Ensure solid background color
       child: fluent.CommandBarCard(
-        backgroundColor: fluent.Colors.white,
+        backgroundColor: backgroundColor,
         child: Row(
           children: [
             const fluent.SizedBox(width: 32.0, height: 32.0, child: fluent.ProgressRing()),
             const SizedBox(width: 8.0),
             fluent.Text(
               'Загрузка${_getDots(_animation.value)}',
+              style: TextStyle(color: textColor),
             ),
           ],
         ),
