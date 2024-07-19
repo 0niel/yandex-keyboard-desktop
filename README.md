@@ -23,8 +23,8 @@ Welcome to the Yandex Keyboard Desktop application! This project leverages the p
 
 1. **Clone the repository**:
     ```bash
-    git clone https://github.com/yourusername/yandex_keyboard_desktop.git
-    cd yandex_keyboard_desktop
+    git clone https://github.com/0niel/yandex-keyboard-desktop.git
+    cd yandex-keyboard-desktop
     ```
 
 2. **Install dependencies**:
@@ -90,8 +90,8 @@ Made with ❤️ by Oniel.
 
 1. **Клонировать репозиторий**:
     ```bash
-    git clone https://github.com/yourusername/yandex_keyboard_desktop.git
-    cd yandex_keyboard_desktop
+    git clone https://github.com/0niel/yandex-keyboard-desktop.git
+    cd yandex-keyboard-desktop
     ```
 
 2. **Установить зависимости**:
