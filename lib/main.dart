@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:clipboard/clipboard.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide MenuItem;
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:tray_manager/tray_manager.dart';
@@ -17,6 +18,7 @@ import 'package:yandex_keyboard_desktop/bloc/text_event.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_state.dart';
 import 'package:logger/logger.dart';
+import 'package:yandex_keyboard_desktop/config.dart';
 import 'package:yandex_keyboard_desktop/loading_animation.dart';
 import 'options_widget.dart';
 
@@ -43,14 +45,6 @@ final SetWindowPos = user32.lookupFunction<
     Int32 Function(IntPtr hWnd, IntPtr hWndInsertAfter, Int32 X, Int32 Y, Int32 cx, Int32 cy, Uint32 uFlags),
     int Function(int hWnd, int hWndInsertAfter, int X, int Y, int cx, int cy, int uFlags)>('SetWindowPos');
 
-final class POINT extends Struct {
-  @Int32()
-  external int x;
-
-  @Int32()
-  external int y;
-}
-
 var logger = Logger();
 
 const double windowWidth = 312;
@@ -58,6 +52,8 @@ const double windowHeight = 45;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final config = await loadConfig();
+
   await hotKeyManager.unregisterAll();
 
   runApp(
@@ -78,6 +74,11 @@ void main() async {
 
     // Initialize system tray
     initTray();
+
+    // Apply autostart setting
+    if (config['autostart'] == true) {
+      setAutostart();
+    }
   });
 }
 
@@ -105,6 +106,14 @@ void setWindowFlags() {
   SetWindowLongPtr(hwnd, gwlExstyle, newExStyle);
   SetLayeredWindowAttributes(hwnd, 0, 255, lwaColorkey); // Set the transparency level to fully opaque
   SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, swpNosize | swpNomove | swpNoactivate);
+}
+
+void setAutostart() async {
+  if (Platform.isWindows || !kDebugMode) {
+    final appPath = Platform.resolvedExecutable;
+    const regPath = r'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run';
+    await Process.run('reg', ['add', regPath, '/v', 'MyApp', '/t', 'REG_SZ', '/d', appPath, '/f']);
+  }
 }
 
 void initTray() async {
@@ -181,9 +190,27 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
 
   /// Registers the hotkey to show the floating window.
   void _setHotKey() async {
+    final config = await loadConfig();
+    final hotkeyConfig = config['hotkey'];
+    final key = hotkeyConfig['key'];
+    final modifiers = hotkeyConfig['modifiers'].map<HotKeyModifier>((mod) {
+      switch (mod) {
+        case 'Control':
+          return HotKeyModifier.control;
+        case 'Shift':
+          return HotKeyModifier.shift;
+        case 'Alt':
+          return HotKeyModifier.alt;
+        case 'Meta':
+          return HotKeyModifier.meta;
+        default:
+          return HotKeyModifier.control;
+      }
+    }).toList();
+
     _hotKey = HotKey(
-      key: PhysicalKeyboardKey.keyR,
-      modifiers: [HotKeyModifier.control],
+      key: getPhysicalKey(key),
+      modifiers: modifiers,
     );
     await hotKeyManager.register(
       _hotKey!,
@@ -191,6 +218,85 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
         _showFloatingWindow();
       },
     );
+  }
+
+  PhysicalKeyboardKey getPhysicalKey(String key) {
+    switch (key.toUpperCase()) {
+      case 'A':
+        return PhysicalKeyboardKey.keyA;
+      case 'B':
+        return PhysicalKeyboardKey.keyB;
+      case 'C':
+        return PhysicalKeyboardKey.keyC;
+      case 'D':
+        return PhysicalKeyboardKey.keyD;
+      case 'E':
+        return PhysicalKeyboardKey.keyE;
+      case 'F':
+        return PhysicalKeyboardKey.keyF;
+      case 'G':
+        return PhysicalKeyboardKey.keyG;
+      case 'H':
+        return PhysicalKeyboardKey.keyH;
+      case 'I':
+        return PhysicalKeyboardKey.keyI;
+      case 'J':
+        return PhysicalKeyboardKey.keyJ;
+      case 'K':
+        return PhysicalKeyboardKey.keyK;
+      case 'L':
+        return PhysicalKeyboardKey.keyL;
+      case 'M':
+        return PhysicalKeyboardKey.keyM;
+      case 'N':
+        return PhysicalKeyboardKey.keyN;
+      case 'O':
+        return PhysicalKeyboardKey.keyO;
+      case 'P':
+        return PhysicalKeyboardKey.keyP;
+      case 'Q':
+        return PhysicalKeyboardKey.keyQ;
+      case 'R':
+        return PhysicalKeyboardKey.keyR;
+      case 'S':
+        return PhysicalKeyboardKey.keyS;
+      case 'T':
+        return PhysicalKeyboardKey.keyT;
+      case 'U':
+        return PhysicalKeyboardKey.keyU;
+      case 'V':
+        return PhysicalKeyboardKey.keyV;
+      case 'W':
+        return PhysicalKeyboardKey.keyW;
+      case 'X':
+        return PhysicalKeyboardKey.keyX;
+      case 'Y':
+        return PhysicalKeyboardKey.keyY;
+      case 'Z':
+        return PhysicalKeyboardKey.keyZ;
+      case '1':
+        return PhysicalKeyboardKey.digit1;
+      case '2':
+        return PhysicalKeyboardKey.digit2;
+      case '3':
+        return PhysicalKeyboardKey.digit3;
+      case '4':
+        return PhysicalKeyboardKey.digit4;
+      case '5':
+        return PhysicalKeyboardKey.digit5;
+      case '6':
+        return PhysicalKeyboardKey.digit6;
+      case '7':
+        return PhysicalKeyboardKey.digit7;
+      case '8':
+        return PhysicalKeyboardKey.digit8;
+      case '9':
+        return PhysicalKeyboardKey.digit9;
+      case '0':
+        return PhysicalKeyboardKey.digit0;
+      default:
+        return PhysicalKeyboardKey.keyR;
+    }
   }
 
   /// Retrieves the selected text by simulating Ctrl+C on Windows or using xclip on Linux.
