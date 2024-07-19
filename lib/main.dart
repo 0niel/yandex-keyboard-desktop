@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 import 'package:clipboard/clipboard.dart';
@@ -19,8 +20,8 @@ import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_state.dart';
 import 'package:logger/logger.dart';
 import 'package:yandex_keyboard_desktop/config.dart';
-import 'package:yandex_keyboard_desktop/loading_animation.dart';
-import 'options_widget.dart';
+import 'package:yandex_keyboard_desktop/widgets/loading_animation.dart';
+import 'widgets/options_widget.dart';
 
 final user32 = DynamicLibrary.open('user32.dll');
 
@@ -111,7 +112,7 @@ void setWindowFlags() {
 void setAutostart() async {
   if (Platform.isWindows || !kDebugMode) {
     final appPath = Platform.resolvedExecutable;
-    const regPath = r'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run';
+    final regPath = r'HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run';
     await Process.run('reg', ['add', regPath, '/v', 'MyApp', '/t', 'REG_SZ', '/d', appPath, '/f']);
   }
 }
