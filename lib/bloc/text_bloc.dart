@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'text_event.dart';
 import 'text_state.dart';
+import 'text_processing_type.dart';
 
 class TextBloc extends Bloc<TextEvent, TextState> {
   TextBloc() : super(TextInitial()) {
@@ -13,8 +14,7 @@ class TextBloc extends Bloc<TextEvent, TextState> {
   Future<void> _onProcessTextEvent(ProcessTextEvent event, Emitter<TextState> emit) async {
     emit(TextProcessing());
     try {
-      final url =
-          event.type == 'emojify' ? 'https://keyboard.yandex.net/gpt/emoji' : 'https://keyboard.yandex.net/gpt/rewrite';
+      final url = _getUrl(event.type);
       final response = await http.post(
         Uri.parse(url),
         headers: {
@@ -34,6 +34,19 @@ class TextBloc extends Bloc<TextEvent, TextState> {
       }
     } catch (e) {
       emit(TextError('Failed to process text: $e'));
+    }
+  }
+
+  String _getUrl(TextProcessingType type) {
+    switch (type) {
+      case TextProcessingType.emojify:
+        return 'https://keyboard.yandex.net/gpt/emoji';
+      case TextProcessingType.rewrite:
+        return 'https://keyboard.yandex.net/gpt/rewrite';
+      case TextProcessingType.fix:
+        return 'https://keyboard.yandex.net/gpt/fix';
+      default:
+        throw ArgumentError('Unknown TextProcessingType: $type');
     }
   }
 }

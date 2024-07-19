@@ -1,13 +1,11 @@
-// © 2024 Oniel. Thanks to Yandex for their awesome API. 😊✨🚀
-
-// ignore_for_file: constant_identifier_names
+import 'dart:async';
+import 'dart:ffi';
 import 'dart:io';
 import 'package:clipboard/clipboard.dart';
 import 'package:flutter/material.dart' hide MenuItem;
 import 'package:screen_retriever/screen_retriever.dart';
 import 'package:tray_manager/tray_manager.dart';
 import 'package:flutter/painting.dart' as painting;
-import 'dart:ffi';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
@@ -16,6 +14,7 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:win32/win32.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_bloc.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_event.dart';
+import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_state.dart';
 import 'package:logger/logger.dart';
 import 'package:yandex_keyboard_desktop/loading_animation.dart';
@@ -54,7 +53,7 @@ final class POINT extends Struct {
 
 var logger = Logger();
 
-const double windowWidth = 300;
+const double windowWidth = 312;
 const double windowHeight = 45;
 
 void main() async {
@@ -83,36 +82,33 @@ void main() async {
 }
 
 void setWindowFlags() {
-  const GWL_EXSTYLE = -20;
-  const GWL_STYLE = -16;
-  const WS_POPUP = 0x80000000;
-  const WS_EX_LAYERED = 0x00080000;
-  const WS_EX_TOOLWINDOW = 0x00000080;
-  const WS_EX_TOPMOST = 0x00000008;
-  const LWA_COLORKEY = 0x00000001;
-  const SWP_NOSIZE = 0x0001;
-  const SWP_NOMOVE = 0x0002;
-  const SWP_NOACTIVATE = 0x0010;
-  const SWP_SHOWWINDOW = 0x0040;
+  const gwlExstyle = -20;
+  const gwlStyle = -16;
+  const wsPopup = 0x80000000;
+  const wsExLayered = 0x00080000;
+  const wsExToolwindow = 0x00000080;
+  const wsExTopmost = 0x00000008;
+  const lwaColorkey = 0x00000001;
+  const swpNosize = 0x0001;
+  const swpNomove = 0x0002;
+  const swpNoactivate = 0x0010;
+  const swpShowwindow = 0x0040;
 
   final hwnd = appWindow.handle;
-  logger.d("Window handle: $hwnd");
 
   // Set the window style to popup, removing any borders or shadows
-  SetWindowLongPtr(hwnd!, GWL_STYLE, WS_POPUP);
+  SetWindowLongPtr(hwnd!, gwlStyle, wsPopup);
 
   // Set extended window styles to make the window layered and topmost
-  final currentExStyle = GetWindowLongPtr(hwnd, GWL_EXSTYLE);
-  final newExStyle = currentExStyle | WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_TOPMOST;
-  SetWindowLongPtr(hwnd, GWL_EXSTYLE, newExStyle);
-  SetLayeredWindowAttributes(hwnd, 0, 255, LWA_COLORKEY); // Set the transparency level to fully opaque
-  SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOSIZE | SWP_NOMOVE | SWP_NOACTIVATE);
+  final currentExStyle = GetWindowLongPtr(hwnd, gwlExstyle);
+  final newExStyle = currentExStyle | wsExLayered | wsExToolwindow | wsExTopmost;
+  SetWindowLongPtr(hwnd, gwlExstyle, newExStyle);
+  SetLayeredWindowAttributes(hwnd, 0, 255, lwaColorkey); // Set the transparency level to fully opaque
+  SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, swpNosize | swpNomove | swpNoactivate);
 }
 
 void initTray() async {
-  await trayManager.setIcon(
-    Platform.isWindows ? 'images/tray_icon.ico' : 'images/tray_icon.png',
-  );
+  await trayManager.setIcon('assets/app_icon.ico');
   Menu menu = Menu(
     items: [
       MenuItem(
@@ -160,29 +156,30 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with TrayListener {
   HotKey? _hotKey;
-  final FocusNode _focusNode = FocusNode();
 
   /// The handle of the original window that was focused before showing the
   /// floating window.
   int _hWndOriginal = 0;
+
+  Timer? _focusCheckTimer;
 
   @override
   void initState() {
     trayManager.addListener(this);
     super.initState();
     _setHotKey();
-    _focusNode.addListener(_handleFocusChange);
+    _startFocusCheck();
   }
 
   @override
   void dispose() {
     trayManager.removeListener(this);
     hotKeyManager.unregister(_hotKey!);
-    _focusNode.removeListener(_handleFocusChange);
-    _focusNode.dispose();
+    _focusCheckTimer?.cancel();
     super.dispose();
   }
 
+  /// Registers the hotkey to show the floating window.
   void _setHotKey() async {
     _hotKey = HotKey(
       key: PhysicalKeyboardKey.keyR,
@@ -191,22 +188,15 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
     await hotKeyManager.register(
       _hotKey!,
       keyDownHandler: (hotKey) {
-        logger.i("Hotkey pressed");
         _showFloatingWindow();
       },
     );
   }
 
-  void _handleFocusChange() {
-    if (!_focusNode.hasFocus) {
-      appWindow.hide();
-    }
-  }
-
+  /// Retrieves the selected text by simulating Ctrl+C on Windows or using xclip on Linux.
   Future<String> _getSelectedText() async {
     String selectedText = '';
     if (Platform.isWindows) {
-      // Simulate Ctrl+C to copy the selected text to clipboard
       final hForeWnd = GetForegroundWindow();
       SetForegroundWindow(hForeWnd);
 
@@ -226,49 +216,44 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
     return selectedText;
   }
 
+  /// Gets the screen size using the system metrics.
   painting.Size _getScreenSize() {
     final int screenWidth = GetSystemMetrics(0); // SM_CXSCREEN = 0
     final int screenHeight = GetSystemMetrics(1); // SM_CYSCREEN = 1
     return painting.Size(screenWidth.toDouble(), screenHeight.toDouble());
   }
 
-  Future<void> _processClipboardText(BuildContext context, String type) async {
+  /// Processes the clipboard text by dispatching a ProcessTextEvent to the TextBloc.
+  Future<void> _processClipboardText(BuildContext context, TextProcessingType type) async {
     final text = await _getSelectedText();
-    logger.d("Processing selected text: $text");
     if (text.isNotEmpty) {
       BlocProvider.of<TextBloc>(context).add(ProcessTextEvent(text, type));
     }
   }
 
+  /// Retrieves the cursor position using the screen retriever package.
   Future<Offset> _getCursorPos() async {
     final cursorOffset = await screenRetriever.getCursorScreenPoint();
-    logger.d("Cursor position retrieved: $cursorOffset");
     return cursorOffset;
   }
 
+  /// Shows the floating window at the cursor position if text is selected.
   void _showFloatingWindow() async {
-    logger.i("Showing floating window");
     _hWndOriginal = GetForegroundWindow(); // Save the handle of the original focused window
-    logger.d("Original window handle: $_hWndOriginal");
     final text = await _getSelectedText();
     if (text.isNotEmpty) {
       final cursorPos = await _getCursorPos();
-      logger.d("Cursor position: (${cursorPos.dx}, ${cursorPos.dy})");
       _showWindowAtCursor(cursorPos, text);
-    } else {
-      logger.e("No text selected");
     }
   }
 
+  /// Positions and shows the floating window at the specified cursor position.
   void _showWindowAtCursor(Offset cursorPos, String clipboardText) {
     final win = appWindow;
     int left = cursorPos.dx.toInt();
     int top = cursorPos.dy.toInt();
 
     final screenSize = _getScreenSize();
-
-    logger.d("Screen size: (${screenSize.width}, ${screenSize.height})");
-    logger.d("Initial window position: (left: $left, top: $top)");
 
     if (left + windowWidth > screenSize.width) {
       left = (screenSize.width - windowWidth).toInt();
@@ -284,8 +269,6 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
       top = 0;
     }
 
-    logger.d("Adjusted window position: (left: $left, top: $top)");
-
     win
       ..alignment = Alignment.topLeft
       ..position = Offset(left.toDouble(), top.toDouble());
@@ -294,9 +277,9 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
         SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | SET_WINDOW_POS_FLAGS.SWP_SHOWWINDOW | SET_WINDOW_POS_FLAGS.SWP_NOSIZE);
   }
 
+  /// Replaces the selected text with the new text by simulating Ctrl+V.
   void _replaceSelectedText(String newText) {
     if (Platform.isWindows) {
-      // Simulate Ctrl+V to paste the text from clipboard
       if (_hWndOriginal != 0) {
         Future.delayed(const Duration(milliseconds: 100), () {
           SetForegroundWindow(_hWndOriginal);
@@ -306,53 +289,57 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
           keybd_event(0x56, 0, 2, 0); // V up
           keybd_event(0x11, 0, 2, 0); // Ctrl up
         });
-      } else {
-        logger.e("Original window handle is 0, cannot paste.");
       }
     }
+  }
+
+  /// Starts a periodic timer to check if the focus has changed to another window.
+  void _startFocusCheck() {
+    _focusCheckTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      final hwnd = GetForegroundWindow();
+      if (hwnd != appWindow.handle && hwnd != 0) {
+        final state = BlocProvider.of<TextBloc>(context).state;
+        if (state is! TextProcessing) {
+          appWindow.hide();
+        }
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: Focus(
-        focusNode: _focusNode,
-        child: BlocListener<TextBloc, TextState>(
-          listener: (context, state) {
-            if (state is TextProcessed) {
-              logger.i("Text processed successfully");
-              FlutterClipboard.copy(state.processedText).then((value) {
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  appWindow.hide();
-                  _replaceSelectedText(state.processedText);
-                });
+      body: BlocListener<TextBloc, TextState>(
+        listener: (context, state) {
+          if (state is TextProcessed) {
+            FlutterClipboard.copy(state.processedText).then((value) {
+              Future.delayed(const Duration(milliseconds: 100), () {
+                appWindow.hide();
+                _replaceSelectedText(state.processedText);
               });
+            });
+          } else if (state is TextError) {
+            appWindow.hide();
+          }
+        },
+        child: BlocBuilder<TextBloc, TextState>(
+          builder: (context, state) {
+            if (state is TextProcessing) {
+              return const Center(child: LoadingAnimation());
+            } else if (state is TextProcessed) {
+              BlocProvider.of<TextBloc>(context).add(ClearTextEvent());
+              return const Center(child: LoadingAnimation());
             } else if (state is TextError) {
-              logger.e("Text processing error: ${state.error}");
-              appWindow.hide();
+              return Center(child: Text(state.error));
+            } else {
+              return Center(
+                child: OptionsWidget(
+                  processClipboardText: _processClipboardText,
+                ),
+              );
             }
           },
-          child: BlocBuilder<TextBloc, TextState>(
-            builder: (context, state) {
-              if (state is TextProcessing) {
-                return const Center(child: LoadingAnimation());
-              } else if (state is TextProcessed) {
-                // add clear
-                BlocProvider.of<TextBloc>(context).add(const ClearTextEvent());
-                return const Center(child: LoadingAnimation());
-              } else if (state is TextError) {
-                return Center(child: Text(state.error));
-              } else {
-                return Center(
-                  child: OptionsWidget(
-                    logger: logger,
-                    processClipboardText: _processClipboardText,
-                  ),
-                );
-              }
-            },
-          ),
         ),
       ),
     );
@@ -360,7 +347,6 @@ class _HomeScreenState extends State<HomeScreen> with TrayListener {
 
   @override
   void onTrayIconMouseDown() {
-    logger.i('Tray icon mouse down');
     trayManager.popUpContextMenu();
   }
 

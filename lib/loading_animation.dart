@@ -33,7 +33,10 @@ class _LoadingAnimationState extends State<LoadingAnimation> with SingleTickerPr
     final textColor = brightness == Brightness.dark ? fluent.Colors.white : fluent.Colors.grey[170];
 
     return Container(
-      color: backgroundColor, // Ensure solid background color
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(4.0),
+      ),
       child: fluent.CommandBarCard(
         backgroundColor: backgroundColor,
         child: Row(

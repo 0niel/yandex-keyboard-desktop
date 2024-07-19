@@ -1,14 +1,12 @@
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
-import 'package:logger/logger.dart';
+import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
 
 class OptionsWidget extends StatelessWidget {
-  final Logger logger;
-  final Future<void> Function(BuildContext context, String type) processClipboardText;
+  final Future<void> Function(BuildContext context, TextProcessingType type) processClipboardText;
 
   const OptionsWidget({
     super.key,
-    required this.logger,
     required this.processClipboardText,
   });
 
@@ -23,16 +21,21 @@ class OptionsWidget extends StatelessWidget {
         icon: Icon(fluent.FluentIcons.emoji, color: textColor),
         label: Text('Emojify', style: TextStyle(color: textColor)),
         onPressed: () {
-          logger.i("Emojify button pressed");
-          processClipboardText(context, 'emojify');
+          processClipboardText(context, TextProcessingType.emojify);
         },
       ),
       fluent.CommandBarButton(
         icon: Icon(fluent.FluentIcons.edit, color: textColor),
         label: Text('Улучшить', style: TextStyle(color: textColor)),
         onPressed: () {
-          logger.i("Rewrite button pressed");
-          processClipboardText(context, 'rewrite');
+          processClipboardText(context, TextProcessingType.rewrite);
+        },
+      ),
+      fluent.CommandBarButton(
+        icon: Icon(fluent.FluentIcons.settings, color: textColor),
+        label: Text('Исправить', style: TextStyle(color: textColor)),
+        onPressed: () {
+          processClipboardText(context, TextProcessingType.fix);
         },
       ),
     ];
@@ -40,6 +43,8 @@ class OptionsWidget extends StatelessWidget {
     return fluent.CommandBarCard(
       backgroundColor: backgroundColor,
       child: fluent.CommandBar(
+        isCompact: false,
+        overflowBehavior: fluent.CommandBarOverflowBehavior.clip,
         primaryItems: [
           ...simpleCommandBarItems,
         ],
