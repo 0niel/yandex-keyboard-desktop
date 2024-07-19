@@ -139,7 +139,13 @@ class MyApp extends StatelessWidget {
       title: 'Fluent UI Example',
       theme: fluent.FluentThemeData(
         visualDensity: VisualDensity.adaptivePlatformDensity,
+        brightness: Brightness.light,
       ),
+      darkTheme: fluent.FluentThemeData(
+        visualDensity: VisualDensity.adaptivePlatformDensity,
+        brightness: Brightness.dark,
+      ),
+      themeMode: ThemeMode.system,
       home: const HomeScreen(),
     );
   }
