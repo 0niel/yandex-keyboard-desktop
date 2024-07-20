@@ -28,6 +28,7 @@ dependencies:
   screen_retriever: ^0.1.9
   window_manager: ^0.3.9
 
+  provider: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
