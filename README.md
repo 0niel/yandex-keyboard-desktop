@@ -10,7 +10,7 @@ Welcome to the Yandex Keyboard Desktop application! This project leverages the p
 - **System Tray Integration**: Minimizes to the system tray for easy access.
 - **Automatic Pasting**: Simulates `Ctrl+V` to paste processed text into the focused window.
 
-![image](https://github.com/user-attachments/assets/84faf215-355c-48c3-bb63-7bff91e05fe8)
+https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
 
 ## Getting Started
 
@@ -77,7 +77,7 @@ Made with ❤️ by Oniel.
 - **Интеграция в системный трей**: Сворачивается в системный трей для легкого доступа.
 - **Автоматическая вставка**: Имитация `Ctrl+V` для вставки обработанного текста в активное окно.
 
-![image](https://github.com/user-attachments/assets/84faf215-355c-48c3-bb63-7bff91e05fe8)
+https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
 
 ## Начало работы
 
