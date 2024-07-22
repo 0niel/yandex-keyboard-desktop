@@ -4,13 +4,14 @@ Welcome to the Yandex Keyboard Desktop application! This project leverages the p
 
 ## Features
 
-- **Hotkey Activation**: Easily activate the app using `Ctrl+R`.
-- **Clipboard Processing**: Automatically processes text from your clipboard.
-- **Floating Window**: Displays a transparent, non-intrusive window at your cursor position.
-- **System Tray Integration**: Minimizes to the system tray for easy access.
-- **Automatic Pasting**: Simulates `Ctrl+V` to paste processed text into the focused window.
+- **Hotkey Activation**: Easily activate the app using `Ctrl+R`. 🎛️
+- **Clipboard Processing**: Automatically processes text from your clipboard. ✂️
+- **Floating Window**: Displays a transparent, non-intrusive window at your cursor position. 🖱️
+- **System Tray Integration**: Minimizes to the system tray for easy access. 📥
+- **Automatic Pasting**: Simulates `Ctrl+V` to paste processed text into the focused window. 📋
+- **Smart Text Enhancements**: Enhance your text, correct errors, and add emojis. Previously available only with Yandex Keyboard on Apple and Android devices. 🤖
 
-https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
+![Yandex Keyboard](https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39)
 
 ## Getting Started
 
@@ -52,16 +53,11 @@ https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
 
 ## Acknowledgements
 
-- **Yandex**: Thanks for the incredible API that powers this application.
-- **Flutter**: For the amazing framework that makes cross-platform development seamless.
+Thanks to Yandex for the incredible API that powers this application. 🙌
 
 ## License
 
 This project is licensed under the MIT License.
-
----
-
-Made with ❤️ by Oniel.
 
 ---
 
@@ -71,13 +67,14 @@ Made with ❤️ by Oniel.
 
 ## Функции
 
-- **Активация горячей клавишей**: Легко активируйте приложение, используя `Ctrl+R`.
-- **Обработка буфера обмена**: Автоматически обрабатывает текст из вашего буфера обмена.
-- **Плавающее окно**: Отображает прозрачное, ненавязчивое окно в позиции вашего курсора.
-- **Интеграция в системный трей**: Сворачивается в системный трей для легкого доступа.
-- **Автоматическая вставка**: Имитация `Ctrl+V` для вставки обработанного текста в активное окно.
+- **Активация горячей клавишей**: Легко активируйте приложение, используя `Ctrl+R`. 🎛️
+- **Обработка буфера обмена**: Автоматически обрабатывает текст из вашего буфера обмена. ✂️
+- **Плавающее окно**: Отображает прозрачное, ненавязчивое окно в позиции вашего курсора. 🖱️
+- **Интеграция в системный трей**: Сворачивается в системный трей для легкого доступа. 📥
+- **Автоматическая вставка**: Имитация `Ctrl+V` для вставки обработанного текста в активное окно. 📋
+- **Умные текстовые улучшения**: Улучшение текста, исправление ошибок и добавление эмодзи. Ранее доступные только с клавиатурой Яндекса на устройствах Apple и Android. 🤖
 
-https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
+![Yandex Keyboard](https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39)
 
 ## Начало работы
 
@@ -119,13 +116,10 @@ https://github.com/user-attachments/assets/81a8e82a-7b3e-4bb0-af3d-864ffc1e3f39
 
 ## Благодарности
 
-- **Яндекс**: Спасибо за невероятный API, который поддерживает это приложение.
-- **Flutter**: За удивительный фреймворк, который делает разработку кросс-платформенных приложений бесшовной.
+Спасибо Яндексу за невероятный API, который поддерживает это приложение. 🙌
 
 ## Лицензия
 
 Этот проект лицензирован на условиях лицензии MIT.
 
 ---
-
-Сделано с ❤️ Ониелом.
