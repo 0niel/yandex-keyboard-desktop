@@ -1,0 +1,43 @@
+{
+    "emojify": "Emojify",
+    "improve": "Improve",
+    "fix": "Fix",
+    "loading": "Loading",
+    "showWindow": "Show Window",
+    "config": "Configuration",
+    "exitApp": "Exit App",
+    "autostart": "Auto-start",
+    "hotkey": "Hotkey",
+    "save": "Save",
+    "@emojify": {
+      "description": "Emojify button label"
+    },
+    "@improve": {
+      "description": "Improve button label"
+    },
+    "@fix": {
+      "description": "Fix button label"
+    },
+    "@loading": {
+      "description": "Loading text"
+    },
+    "@showWindow": {
+      "description": "Tray menu item to show window"
+    },
+    "@config": {
+      "description": "Tray menu item to open configuration"
+    },
+    "@exitApp": {
+      "description": "Tray menu item to exit app"
+    },
+    "@autostart": {
+      "description": "Auto-start toggle"
+    },
+    "@hotkey": {
+      "description": "Hotkey label"
+    },
+    "@save": {
+      "description": "Save button label"
+    }
+  }
+  

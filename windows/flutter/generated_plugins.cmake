@@ -3,7 +3,7 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  bitsdojo_window_windows
+  flutter_acrylic
   hotkey_manager_windows
   screen_retriever
   tray_manager

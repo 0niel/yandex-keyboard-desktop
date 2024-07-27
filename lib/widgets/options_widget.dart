@@ -1,6 +1,7 @@
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class OptionsWidget extends StatelessWidget {
   final Future<void> Function(BuildContext context, TextProcessingType type) processClipboardText;
@@ -19,21 +20,21 @@ class OptionsWidget extends StatelessWidget {
     final simpleCommandBarItems = <fluent.CommandBarItem>[
       fluent.CommandBarButton(
         icon: Icon(fluent.FluentIcons.emoji, color: textColor),
-        label: Text('Emojify', style: TextStyle(color: textColor)),
+        label: Text(AppLocalizations.of(context)!.emojify, style: TextStyle(color: textColor)),
         onPressed: () {
           processClipboardText(context, TextProcessingType.emojify);
         },
       ),
       fluent.CommandBarButton(
         icon: Icon(fluent.FluentIcons.edit, color: textColor),
-        label: Text('Улучшить', style: TextStyle(color: textColor)),
+        label: Text(AppLocalizations.of(context)!.improve, style: TextStyle(color: textColor)),
         onPressed: () {
           processClipboardText(context, TextProcessingType.rewrite);
         },
       ),
       fluent.CommandBarButton(
         icon: Icon(fluent.FluentIcons.settings, color: textColor),
-        label: Text('Исправить', style: TextStyle(color: textColor)),
+        label: Text(AppLocalizations.of(context)!.fix, style: TextStyle(color: textColor)),
         onPressed: () {
           processClipboardText(context, TextProcessingType.fix);
         },

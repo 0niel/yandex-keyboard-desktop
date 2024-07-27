@@ -1,13 +1,95 @@
+import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
 
 class HotKeyService {
   HotKey? _hotKey;
 
-  void setHotKey({required String key, required List<String> modifier, required VoidCallback onHotKeyPressed}) async {
+  static const Map<String, PhysicalKeyboardKey> _keyMap = {
+    'A': PhysicalKeyboardKey.keyA,
+    'B': PhysicalKeyboardKey.keyB,
+    'C': PhysicalKeyboardKey.keyC,
+    'D': PhysicalKeyboardKey.keyD,
+    'E': PhysicalKeyboardKey.keyE,
+    'F': PhysicalKeyboardKey.keyF,
+    'G': PhysicalKeyboardKey.keyG,
+    'H': PhysicalKeyboardKey.keyH,
+    'I': PhysicalKeyboardKey.keyI,
+    'J': PhysicalKeyboardKey.keyJ,
+    'K': PhysicalKeyboardKey.keyK,
+    'L': PhysicalKeyboardKey.keyL,
+    'M': PhysicalKeyboardKey.keyM,
+    'N': PhysicalKeyboardKey.keyN,
+    'O': PhysicalKeyboardKey.keyO,
+    'P': PhysicalKeyboardKey.keyP,
+    'Q': PhysicalKeyboardKey.keyQ,
+    'R': PhysicalKeyboardKey.keyR,
+    'S': PhysicalKeyboardKey.keyS,
+    'T': PhysicalKeyboardKey.keyT,
+    'U': PhysicalKeyboardKey.keyU,
+    'V': PhysicalKeyboardKey.keyV,
+    'W': PhysicalKeyboardKey.keyW,
+    'X': PhysicalKeyboardKey.keyX,
+    'Y': PhysicalKeyboardKey.keyY,
+    'Z': PhysicalKeyboardKey.keyZ,
+    '1': PhysicalKeyboardKey.digit1,
+    '2': PhysicalKeyboardKey.digit2,
+    '3': PhysicalKeyboardKey.digit3,
+    '4': PhysicalKeyboardKey.digit4,
+    '5': PhysicalKeyboardKey.digit5,
+    '6': PhysicalKeyboardKey.digit6,
+    '7': PhysicalKeyboardKey.digit7,
+    '8': PhysicalKeyboardKey.digit8,
+    '9': PhysicalKeyboardKey.digit9,
+    '0': PhysicalKeyboardKey.digit0,
+  };
+
+  static const Map<String, HotKeyModifier> _modifierMap = {
+    'control': HotKeyModifier.control,
+    'control left': HotKeyModifier.control,
+    'control right': HotKeyModifier.control,
+    'shift': HotKeyModifier.shift,
+    'shift left': HotKeyModifier.shift,
+    'shift right': HotKeyModifier.shift,
+    'alt': HotKeyModifier.alt,
+    'alt left': HotKeyModifier.alt,
+    'alt right': HotKeyModifier.alt,
+    'meta': HotKeyModifier.meta,
+    'meta left': HotKeyModifier.meta,
+    'meta right': HotKeyModifier.meta,
+  };
+
+  static const Map<String, String> _modifierToStringMap = {
+    'Control': 'Ctrl',
+    'Shift': 'Shift',
+    'Alt': 'Alt',
+    'Meta': 'Cmd',
+  };
+
+  static const Map<String, IconData> _modifierIconMap = {
+    'control': FontAwesomeIcons.keyboard,
+    'control left': FontAwesomeIcons.keyboard,
+    'control right': FontAwesomeIcons.keyboard,
+    'shift': FontAwesomeIcons.arrowUp,
+    'shift left': FontAwesomeIcons.arrowUp,
+    'shift right': FontAwesomeIcons.arrowUp,
+    'alt': FontAwesomeIcons.arrowsAlt,
+    'alt left': FontAwesomeIcons.arrowsAlt,
+    'alt right': FontAwesomeIcons.arrowsAlt,
+    'meta': FontAwesomeIcons.apple,
+    'meta left': FontAwesomeIcons.apple,
+    'meta right': FontAwesomeIcons.apple,
+  };
+
+  void setHotKey({
+    required String key,
+    required List<String> modifiers,
+    required VoidCallback onHotKeyPressed,
+  }) async {
     _hotKey = HotKey(
       key: getPhysicalKey(key),
-      modifiers: [for (var mod in modifier) getModifierKey(mod)],
+      modifiers: modifiers.map((mod) => getModifierKey(mod)).toList(),
     );
     await hotKeyManager.register(
       _hotKey!,
@@ -17,98 +99,25 @@ class HotKeyService {
     );
   }
 
-  HotKeyModifier getModifierKey(String mod) {
-    switch (mod) {
-      case 'Control':
-        return HotKeyModifier.control;
-      case 'Shift':
-        return HotKeyModifier.shift;
-      case 'Alt':
-        return HotKeyModifier.alt;
-      case 'Meta':
-        return HotKeyModifier.meta;
-      default:
-        return HotKeyModifier.control;
-    }
+  static PhysicalKeyboardKey getPhysicalKey(String key) {
+    return _keyMap[key.toUpperCase()] ?? PhysicalKeyboardKey.keyR;
   }
 
-  PhysicalKeyboardKey getPhysicalKey(String key) {
-    switch (key.toUpperCase()) {
-      case 'A':
-        return PhysicalKeyboardKey.keyA;
-      case 'B':
-        return PhysicalKeyboardKey.keyB;
-      case 'C':
-        return PhysicalKeyboardKey.keyC;
-      case 'D':
-        return PhysicalKeyboardKey.keyD;
-      case 'E':
-        return PhysicalKeyboardKey.keyE;
-      case 'F':
-        return PhysicalKeyboardKey.keyF;
-      case 'G':
-        return PhysicalKeyboardKey.keyG;
-      case 'H':
-        return PhysicalKeyboardKey.keyH;
-      case 'I':
-        return PhysicalKeyboardKey.keyI;
-      case 'J':
-        return PhysicalKeyboardKey.keyJ;
-      case 'K':
-        return PhysicalKeyboardKey.keyK;
-      case 'L':
-        return PhysicalKeyboardKey.keyL;
-      case 'M':
-        return PhysicalKeyboardKey.keyM;
-      case 'N':
-        return PhysicalKeyboardKey.keyN;
-      case 'O':
-        return PhysicalKeyboardKey.keyO;
-      case 'P':
-        return PhysicalKeyboardKey.keyP;
-      case 'Q':
-        return PhysicalKeyboardKey.keyQ;
-      case 'R':
-        return PhysicalKeyboardKey.keyR;
-      case 'S':
-        return PhysicalKeyboardKey.keyS;
-      case 'T':
-        return PhysicalKeyboardKey.keyT;
-      case 'U':
-        return PhysicalKeyboardKey.keyU;
-      case 'V':
-        return PhysicalKeyboardKey.keyV;
-      case 'W':
-        return PhysicalKeyboardKey.keyW;
-      case 'X':
-        return PhysicalKeyboardKey.keyX;
-      case 'Y':
-        return PhysicalKeyboardKey.keyY;
-      case 'Z':
-        return PhysicalKeyboardKey.keyZ;
-      case '1':
-        return PhysicalKeyboardKey.digit1;
-      case '2':
-        return PhysicalKeyboardKey.digit2;
-      case '3':
-        return PhysicalKeyboardKey.digit3;
-      case '4':
-        return PhysicalKeyboardKey.digit4;
-      case '5':
-        return PhysicalKeyboardKey.digit5;
-      case '6':
-        return PhysicalKeyboardKey.digit6;
-      case '7':
-        return PhysicalKeyboardKey.digit7;
-      case '8':
-        return PhysicalKeyboardKey.digit8;
-      case '9':
-        return PhysicalKeyboardKey.digit9;
-      case '0':
-        return PhysicalKeyboardKey.digit0;
-      default:
-        return PhysicalKeyboardKey.keyR;
-    }
+  static HotKeyModifier getModifierKey(String mod) {
+    return _modifierMap[mod.toLowerCase()] ?? HotKeyModifier.control;
+  }
+
+  static String mapKeyToString(String key) {
+    return key;
+  }
+
+  static String mapModifierToString(String modifier) {
+    return _modifierToStringMap[modifier] ?? modifier;
+  }
+
+  static Widget mapModifierToIcon(String modifier) {
+    final icon = _modifierIconMap[modifier.toLowerCase()];
+    return icon != null ? Icon(icon, size: 16) : Text(modifier, style: const TextStyle(fontSize: 16));
   }
 
   void unregisterHotKey() async {

@@ -1,5 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
+import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 
 class LoadingAnimation extends StatefulWidget {
   const LoadingAnimation({super.key});
@@ -30,25 +31,25 @@ class _LoadingAnimationState extends State<LoadingAnimation> with SingleTickerPr
   Widget build(BuildContext context) {
     final brightness = fluent.FluentTheme.of(context).brightness;
     final backgroundColor = brightness == Brightness.dark ? fluent.Colors.grey[170] : fluent.Colors.white;
-    final textColor = brightness == Brightness.dark ? fluent.Colors.white : fluent.Colors.grey[170];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: BorderRadius.circular(4.0),
-      ),
-      child: fluent.CommandBarCard(
-        backgroundColor: backgroundColor,
-        child: Row(
-          children: [
-            const fluent.SizedBox(width: 32.0, height: 32.0, child: fluent.ProgressRing()),
-            const SizedBox(width: 8.0),
-            fluent.Text(
-              'Загрузка${_getDots(_animation.value)}',
-              style: TextStyle(color: textColor),
-            ),
-          ],
-        ),
+    return fluent.CommandBarCard(
+      backgroundColor: backgroundColor,
+      child: Row(
+        children: [
+          const fluent.SizedBox(width: 32.0, height: 32.0, child: fluent.ProgressRing()),
+          const SizedBox(width: 16.0),
+          AnimatedBuilder(
+            animation: _animation,
+            builder: (context, child) {
+              return fluent.Text(
+                '${AppLocalizations.of(context)!.loading}${_getDots(_animation.value)}',
+                style: fluent.Typography.fromBrightness(
+                  brightness: brightness,
+                ).body,
+              );
+            },
+          ),
+        ],
       ),
     );
   }

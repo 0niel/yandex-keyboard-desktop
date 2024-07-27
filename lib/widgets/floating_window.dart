@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'package:bitsdojo_window/bitsdojo_window.dart';
 import 'package:clipboard/clipboard.dart';
-import 'package:flutter/material.dart' hide MenuItem;
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:provider/provider.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_bloc.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_event.dart';
 import 'package:yandex_keyboard_desktop/bloc/text_processing_type.dart';
@@ -11,9 +11,7 @@ import 'package:yandex_keyboard_desktop/bloc/text_state.dart';
 import 'package:yandex_keyboard_desktop/platform/platform_service.dart';
 import 'package:yandex_keyboard_desktop/widgets/loading_animation.dart';
 import 'package:yandex_keyboard_desktop/widgets/options_widget.dart';
-
-const double windowWidth = 312;
-const double windowHeight = 45;
+import 'package:yandex_keyboard_desktop/window_service.dart';
 
 class FloatingWindow extends StatefulWidget {
   const FloatingWindow({super.key});
@@ -55,13 +53,13 @@ class FloatingWindowState extends State<FloatingWindow> {
     }
   }
 
-  void _showWindowAtCursor(Offset cursorPos, String clipboardText) {
+  void _showWindowAtCursor(Offset cursorPos, String clipboardText) async {
     final platformService = Provider.of<PlatformService>(context, listen: false);
-    final win = appWindow;
+    final win = windowManager;
     int left = cursorPos.dx.toInt();
     int top = cursorPos.dy.toInt();
 
-    final screenSize = platformService.getScreenSize();
+    final screenSize = await platformService.getScreenSize();
 
     if (left + windowWidth > screenSize.width) {
       left = (screenSize.width - windowWidth).toInt();
@@ -77,22 +75,24 @@ class FloatingWindowState extends State<FloatingWindow> {
       top = 0;
     }
 
-    win
-      ..alignment = Alignment.topLeft
-      ..position = Offset(left.toDouble(), top.toDouble());
+    win.setPosition(Offset(left.toDouble(), top.toDouble()));
+    win.setSize(const Size(windowWidth, windowHeight));
 
     platformService.setWindowFlags();
     win.show();
   }
 
   void _startFocusCheck() {
-    _focusCheckTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+    _focusCheckTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
       final platformService = Provider.of<PlatformService>(context, listen: false);
       final hwnd = platformService.getForegroundWindow();
-      if (hwnd != appWindow.handle && hwnd != 0) {
+
+      if (hwnd != await platformService.getFlutterWindowHandle() && hwnd != 0 && await windowManager.isVisible()) {
         final state = BlocProvider.of<TextBloc>(context).state;
         if (state is! TextProcessing) {
-          appWindow.hide();
+          if (!await windowManager.isFocused()) {
+            windowManager.hide();
+          }
         }
       }
     });
@@ -107,12 +107,12 @@ class FloatingWindowState extends State<FloatingWindow> {
           if (state is TextProcessed) {
             FlutterClipboard.copy(state.processedText).then((value) {
               Future.delayed(const Duration(milliseconds: 100), () {
-                appWindow.hide();
+                windowManager.hide();
                 Provider.of<PlatformService>(context, listen: false).replaceSelectedText(state.processedText);
               });
             });
           } else if (state is TextError) {
-            appWindow.hide();
+            windowManager.hide();
           }
         },
         child: BlocBuilder<TextBloc, TextState>(
