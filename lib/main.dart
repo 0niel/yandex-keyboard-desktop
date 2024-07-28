@@ -52,10 +52,8 @@ void main() async {
     alwaysOnTop: true,
   );
 
-  final windowService = WindowService(); // Инициализируйте WindowService
-
   windowManager.waitUntilReadyToShow(windowOptions, () async {
-    await windowService.initializeWindow(); // Используйте метод WindowService для инициализации окна
+    await WindowService.initializeWindow();
 
     PackageInfo packageInfo = await PackageInfo.fromPlatform();
 
@@ -97,13 +95,14 @@ class App extends StatefulWidget {
   State<App> createState() => _AppState();
 }
 
-class _AppState extends State<App> with TrayListener {
+class _AppState extends State<App> with TrayListener, WindowListener {
   late final HotKeyService hotKeyService;
 
   @override
   void initState() {
     super.initState();
 
+    windowManager.addListener(this);
     trayManager.addListener(this);
 
     hotKeyService = HotKeyService();
@@ -130,8 +129,19 @@ class _AppState extends State<App> with TrayListener {
   }
 
   @override
+  void onWindowEvent(String eventName) async {
+    if (eventName == 'hide') {
+      await WindowService.initializeWindow();
+
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+    }
+  }
+
+  @override
   void dispose() {
     hotKeyService.dispose();
+    windowManager.removeListener(this);
+    trayManager.removeListener(this);
     super.dispose();
   }
 
@@ -156,8 +166,14 @@ class _AppState extends State<App> with TrayListener {
     await windowManager.setAlwaysOnTop(false);
     await windowManager.setAsFrameless();
     await windowManager.setHasShadow(true);
-    await windowManager.setSize(const Size(600, 400));
+    await windowManager.setSize(const Size(600, 360));
     await windowManager.center();
+    await windowManager.setIgnoreMouseEvents(false);
+    try {
+      await windowManager.setMovable(true);
+    } catch (e) {
+      print(e);
+    }
     await windowManager.show();
 
     navigatorKey.currentState?.push(

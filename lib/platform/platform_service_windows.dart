@@ -40,33 +40,6 @@ class WindowsPlatformService implements PlatformService {
   int _originalWindowHandle = 0;
 
   @override
-  void setWindowFlags() {
-    const gwlExstyle = -20;
-    const gwlStyle = -16;
-    const wsPopup = 0x80000000;
-    const wsExLayered = 0x00080000;
-    const wsExToolwindow = 0x00000080;
-    const wsExTopmost = 0x00000008;
-    const lwaColorkey = 0x00000001;
-    const swpNosize = 0x0001;
-    const swpNomove = 0x0002;
-    const swpNoactivate = 0x0010;
-    const swpShowwindow = 0x0040;
-
-    final hwnd = findWindowA('FLUTTER_RUNNER_WIN32_WINDOW'.toNativeUtf8(), nullptr);
-
-    // Set the window style to popup, removing any borders or shadows
-    SetWindowLongPtr(hwnd, gwlStyle, wsPopup);
-
-    // Set extended window styles to make the window layered and topmost
-    final currentExStyle = GetWindowLongPtr(hwnd, gwlExstyle);
-    final newExStyle = currentExStyle | wsExLayered | wsExToolwindow | wsExTopmost;
-    SetWindowLongPtr(hwnd, gwlExstyle, newExStyle);
-    SetLayeredWindowAttributes(hwnd, 0, 255, lwaColorkey); // Set the transparency level to fully opaque
-    SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, swpNosize | swpNomove | swpNoactivate);
-  }
-
-  @override
   Future<String> getSelectedText() async {
     if (_originalWindowHandle == 0) {
       _originalWindowHandle = GetForegroundWindow();

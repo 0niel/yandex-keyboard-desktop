@@ -5,7 +5,6 @@ import 'package:yandex_keyboard_desktop/platform/linux_platform_service.dart';
 import 'package:yandex_keyboard_desktop/platform/platform_service_windows.dart';
 
 abstract class PlatformService {
-  void setWindowFlags();
   Future<String> getSelectedText();
   Future<Size> getScreenSize();
   Future<Offset> getCursorPos();

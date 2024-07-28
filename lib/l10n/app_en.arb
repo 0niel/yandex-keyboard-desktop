@@ -1,43 +1,54 @@
 {
-    "emojify": "Emojify",
-    "improve": "Improve",
-    "fix": "Fix",
-    "loading": "Loading",
-    "showWindow": "Show Window",
-    "config": "Configuration",
-    "exitApp": "Exit App",
-    "autostart": "Auto-start",
-    "hotkey": "Hotkey",
-    "save": "Save",
-    "@emojify": {
-      "description": "Emojify button label"
-    },
-    "@improve": {
-      "description": "Improve button label"
-    },
-    "@fix": {
-      "description": "Fix button label"
-    },
-    "@loading": {
-      "description": "Loading text"
-    },
-    "@showWindow": {
-      "description": "Tray menu item to show window"
-    },
-    "@config": {
-      "description": "Tray menu item to open configuration"
-    },
-    "@exitApp": {
-      "description": "Tray menu item to exit app"
-    },
-    "@autostart": {
-      "description": "Auto-start toggle"
-    },
-    "@hotkey": {
-      "description": "Hotkey label"
-    },
-    "@save": {
-      "description": "Save button label"
-    }
+  "emojify": "Emojify",
+  "improve": "Улучшить",
+  "fix": "Исправить",
+  "loading": "Загрузка",
+  "showWindow": "Показать окно",
+  "config": "Конфигурация",
+  "exitApp": "Выйти из приложения",
+  "autostart": "Автозапуск",
+  "hotkey": "Горячая клавиша",
+  "save": "Сохранить",
+  "configDescription": "Используйте этот экран для настройки параметров приложения, включая автозапуск и горячие клавиши.",
+  "setHotkey": "Установить горячую клавишу",
+  "pressHotkey": "Нажмите комбинацию клавиш, которую хотите установить в качестве горячей клавиши.",
+  "@emojify": {
+    "description": "Emojify button label"
+  },
+  "@improve": {
+    "description": "Improve button label"
+  },
+  "@fix": {
+    "description": "Fix button label"
+  },
+  "@loading": {
+    "description": "Loading text"
+  },
+  "@showWindow": {
+    "description": "Tray menu item to show window"
+  },
+  "@config": {
+    "description": "Tray menu item to open configuration"
+  },
+  "@exitApp": {
+    "description": "Tray menu item to exit app"
+  },
+  "@autostart": {
+    "description": "Auto-start toggle"
+  },
+  "@hotkey": {
+    "description": "Hotkey label"
+  },
+  "@save": {
+    "description": "Save button label"
+  },
+  "@configDescription": {
+    "description": "Description for the config screen"
+  },
+  "@setHotkey": {
+    "description": "Label for setting hotkey"
+  },
+  "@pressHotkey": {
+    "description": "Instruction to press the key combination to set as hotkey"
   }
-  
+}

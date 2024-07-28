@@ -9,13 +9,6 @@ class LinuxPlatformService implements PlatformService {
   int _originalWindowHandle = 0;
 
   @override
-  void setWindowFlags() {
-    // appWindow
-    //   ..alignment = Alignment.topRight
-    //   ..show();
-  }
-
-  @override
   Future<String> getSelectedText() async {
     final result = await Process.run('xclip', ['-selection', 'clipboard', '-o']);
     return result.stdout;

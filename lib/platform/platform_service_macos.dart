@@ -9,9 +9,6 @@ class MacOSPlatformService implements PlatformService {
   int _originalWindowHandle = 0;
 
   @override
-  void setWindowFlags() {}
-
-  @override
   Future<String> getSelectedText() async {
     if (_originalWindowHandle == 0) {
       _originalWindowHandle = getForegroundWindow();

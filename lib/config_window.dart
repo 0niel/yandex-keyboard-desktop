@@ -2,10 +2,10 @@ import 'package:fluent_ui/fluent_ui.dart' as fluent;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hotkey_manager/hotkey_manager.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:yandex_keyboard_desktop/config_manager.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:yandex_keyboard_desktop/hotkey_service.dart';
-import 'package:yandex_keyboard_desktop/window_service.dart';
 
 class ConfigWindow extends StatefulWidget {
   const ConfigWindow({super.key});
@@ -19,7 +19,6 @@ class _ConfigWindowState extends State<ConfigWindow> {
   late bool _autostart;
   late HotKeyService _hotKeyService;
   HotKey? _currentHotKey;
-  late WindowService _windowService;
 
   @override
   void initState() {
@@ -27,13 +26,12 @@ class _ConfigWindowState extends State<ConfigWindow> {
     _autostart = false;
     _hotkeyController = TextEditingController();
     _hotKeyService = HotKeyService();
-    _windowService = WindowService();
+
     _loadConfig();
   }
 
   @override
   void dispose() {
-    _windowService.dispose();
     _hotkeyController.dispose();
     _hotKeyService.dispose();
     super.dispose();
@@ -108,10 +106,10 @@ class _ConfigWindowState extends State<ConfigWindow> {
   Widget build(BuildContext context) {
     return fluent.NavigationView(
       appBar: fluent.NavigationAppBar(
-        title: const Text('Config'),
+        title: Text(AppLocalizations.of(context)!.config),
         leading: IconButton(
-          icon: const Icon(fluent.FluentIcons.back),
-          onPressed: () => Navigator.of(context).pop(),
+          icon: const Icon(fluent.FluentIcons.cancel),
+          onPressed: () => windowManager.hide(),
         ),
       ),
       content: fluent.ScaffoldPage(
@@ -120,10 +118,12 @@ class _ConfigWindowState extends State<ConfigWindow> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              fluent.Text(
-                AppLocalizations.of(context)!.autostart,
-                style: fluent.FluentTheme.of(context).typography.title,
+              fluent.InfoBar(
+                title: Text(AppLocalizations.of(context)!.config),
+                content: Text(AppLocalizations.of(context)!.configDescription),
+                severity: fluent.InfoBarSeverity.info,
               ),
+              const SizedBox(height: 16),
               fluent.ToggleSwitch(
                 checked: _autostart,
                 onChanged: (value) {
@@ -131,15 +131,13 @@ class _ConfigWindowState extends State<ConfigWindow> {
                     _autostart = value;
                   });
                 },
+                content: Text(AppLocalizations.of(context)!.autostart),
               ),
               const SizedBox(height: 16),
-              fluent.Text(
-                AppLocalizations.of(context)!.hotkey,
-                style: fluent.FluentTheme.of(context).typography.title,
-              ),
+              fluent.Text(AppLocalizations.of(context)!.hotkey, style: fluent.FluentTheme.of(context).typography.body),
               fluent.Button(
                 child: _hotkeyController.text.isEmpty
-                    ? const Text('Set Hotkey')
+                    ? Text(AppLocalizations.of(context)!.setHotkey)
                     : _buildHotKeyWidget(
                         _currentHotKey?.key.keyLabel ?? '',
                         _currentHotKey?.modifiers?.map((m) => m.toString().split('.').last).toList() ?? [],
@@ -158,7 +156,7 @@ class _ConfigWindowState extends State<ConfigWindow> {
                 child: Text(AppLocalizations.of(context)!.save),
                 onPressed: () async {
                   await _saveConfig();
-                  Navigator.of(context).pop();
+                  windowManager.hide();
                 },
               ),
             ],
@@ -207,11 +205,11 @@ class _HotKeyDialogState extends State<HotKeyDialog> {
           ),
         },
         child: fluent.ContentDialog(
-          title: const Text('Press Hotkey'),
-          content: const Text('Press the key combination you want to set as hotkey.'),
+          title: Text(AppLocalizations.of(context)!.setHotkey),
+          content: Text(AppLocalizations.of(context)!.pressHotkey),
           actions: [
             fluent.Button(
-              child: const Text('Cancel'),
+              child: Text(AppLocalizations.of(context)!.save),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],

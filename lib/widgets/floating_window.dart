@@ -78,7 +78,6 @@ class FloatingWindowState extends State<FloatingWindow> {
     win.setPosition(Offset(left.toDouble(), top.toDouble()));
     win.setSize(const Size(windowWidth, windowHeight));
 
-    platformService.setWindowFlags();
     win.show();
   }
 
