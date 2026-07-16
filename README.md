@@ -1,127 +1,145 @@
-# Yandex Keyboard Desktop 🚀
+<p align="center">
+  <img src="assets/brand/symbol.svg" width="88" alt="Yandex Keyboard Desktop">
+</p>
 
-Welcome to the Yandex Keyboard Desktop application! This project leverages the powerful Yandex API to enhance your clipboard functionality. Special thanks to Yandex for their awesome API. 😊✨
+<h1 align="center">Yandex Keyboard Desktop</h1>
 
-## Features
+<p align="center">
+  Text assistant for Windows · Текстовый помощник для Windows
+</p>
 
-- **Hotkey Activation**: Easily activate the app using `Ctrl+R`. 🎛️
-- **Clipboard Processing**: Automatically processes text from your clipboard. ✂️
-- **Floating Window**: Displays a transparent, non-intrusive window at your cursor position. 🖱️
-- **System Tray Integration**: Minimizes to the system tray for easy access. 📥
-- **Automatic Pasting**: Simulates `Ctrl+V` to paste processed text into the focused window. 📋
-- **Smart Text Enhancements**: Enhance your text, correct errors, and add emojis. Previously available only with Yandex Keyboard on Apple and Android devices. 🤖
+<p align="center">
+  <a href="#english">English</a>
+  ·
+  <a href="#русский">Русский</a>
+</p>
 
+<p align="center">
+  <a href="https://github.com/0niel/yandex-keyboard-desktop/releases/latest"><strong>Download · Скачать</strong></a>
+  ·
+  <a href="https://github.com/0niel/yandex-keyboard-desktop/releases">All releases · Все релизы</a>
+</p>
+
+## 🎬 Demo · Демонстрация
 
 https://github.com/user-attachments/assets/c2ddd419-5f81-49e3-b851-718b5502678a
 
+## English
 
-## Getting Started
+Yandex Keyboard Desktop improves selected text, fixes spelling and punctuation, and adds emoji directly in the active application.
 
-### Prerequisites
+### ✨ Features
 
-- Flutter SDK
-- Dart SDK
+- improves wording while preserving the original meaning;
+- fixes spelling and punctuation;
+- adds relevant emoji;
+- shows a compact assistant window next to the cursor;
+- provides global keyboard shortcuts and separate settings profiles;
+- supports English and Russian with automatic system language detection;
+- runs from the system tray and can start with Windows;
+- restores clipboard contents after processing.
 
-### Installation
+### 🚀 Quick start
 
-1. **Clone the repository**:
-    ```bash
-    git clone https://github.com/0niel/yandex-keyboard-desktop.git
-    cd yandex-keyboard-desktop
-    ```
+1. Download the ZIP archive from the [latest release](https://github.com/0niel/yandex-keyboard-desktop/releases/latest).
+2. Extract it to any convenient folder.
+3. Run `yandex_keyboard_desktop.exe`.
+4. Select text in any application and press the required keyboard shortcut.
 
-2. **Install dependencies**:
-    ```bash
-    flutter pub get
-    ```
+Releases are published for Windows x64 as portable archives, with no installer or MSIX. The application is currently unsigned, so Windows SmartScreen may display a warning on first launch.
 
-3. **Run the app**:
-    ```bash
-    flutter run
-    ```
+### ⌨️ Keyboard shortcuts
 
-## Usage
+| Action | Default |
+| --- | --- |
+| Show the assistant | `Ctrl+Alt+Space` |
+| Improve selected text | `Ctrl+Alt+R` |
+| Fix errors in selected text | `Ctrl+Alt+F` |
+| Emojify selected text | `Ctrl+Alt+E` |
 
-- **Activate the app**: Press `Ctrl+R` to activate the floating window and process the clipboard text.
-- **System Tray**: Right-click the tray icon to show the window or exit the app.
+All shortcuts can be changed in the application settings.
 
-## Download
+### 🔒 Data and privacy
 
-- [Download the latest release](https://github.com/0niel/yandex-keyboard-desktop/releases) 🚀
+Selected text is sent to the processing service only when the user starts an action. Local history and diagnostics are disabled by default. When enabled, they do not store the original or processed text, clipboard contents, window titles, or URLs.
 
-> **Note**: Currently, the application only supports **Windows**.
-> - macOS: 🚧 In Progress
-> - Linux: 🚧 In Progress
+### 🛠 Development
 
-## Acknowledgements
+Building the application requires Flutter 3.44.2 and a configured Windows desktop toolchain.
 
-Thanks to Yandex for the incredible API that powers this application. 🙌
+```powershell
+git clone https://github.com/0niel/yandex-keyboard-desktop.git
+cd yandex-keyboard-desktop
+flutter pub get --enforce-lockfile
+flutter run -d windows
+```
 
-## License
+Release build:
 
-This project is licensed under the MIT License.
+```powershell
+flutter build windows --release
+```
 
----
+GitHub Actions checks formatting, static analysis, tests, and the Windows build before publishing a portable archive with a SHA-256 checksum. The version is derived from the UTC commit date and the total commit count.
 
-# Yandex Keyboard Desktop 🚀
+## Русский
 
-Добро пожаловать в Yandex Keyboard Desktop! Этот проект использует мощный API Яндекса для улучшения функциональности вашего буфера обмена. Особая благодарность Яндексу за их замечательный API. 😊✨
+Yandex Keyboard Desktop улучшает выделенный текст, исправляет ошибки и добавляет эмодзи прямо в активном приложении.
 
-## Функции
+### ✨ Возможности
 
-- **Активация горячей клавишей**: Легко активируйте приложение, используя `Ctrl+R`. 🎛️
-- **Обработка буфера обмена**: Автоматически обрабатывает текст из вашего буфера обмена. ✂️
-- **Плавающее окно**: Отображает прозрачное, ненавязчивое окно в позиции вашего курсора. 🖱️
-- **Интеграция в системный трей**: Сворачивается в системный трей для легкого доступа. 📥
-- **Автоматическая вставка**: Имитация `Ctrl+V` для вставки обработанного текста в активное окно. 📋
-- **Умные текстовые улучшения**: Улучшение текста, исправление ошибок и добавление эмодзи. Ранее доступные только с клавиатурой Яндекса на устройствах Apple и Android. 🤖
+- улучшение формулировок без изменения смысла;
+- исправление орфографии и пунктуации;
+- добавление уместных эмодзи;
+- небольшое окно ассистента рядом с курсором;
+- глобальные сочетания клавиш и отдельные профили настроек;
+- интерфейс на русском и английском языках с автоматическим выбором языка системы;
+- работа из системного трея и запуск вместе с Windows;
+- восстановление содержимого буфера обмена после обработки.
 
-https://github.com/user-attachments/assets/840b0d59-00b5-464f-8b66-8838583d3299
+### 🚀 Быстрый старт
 
-## Начало работы
+1. Скачайте ZIP-архив из [последнего релиза](https://github.com/0niel/yandex-keyboard-desktop/releases/latest).
+2. Распакуйте архив в удобную папку.
+3. Запустите `yandex_keyboard_desktop.exe`.
+4. Выделите текст в любом приложении и нажмите нужное сочетание клавиш.
 
-### Требования
+Релизы публикуются для Windows x64 в portable-формате — без установщика и MSIX. Приложение пока не подписано сертификатом, поэтому при первом запуске Windows SmartScreen может показать предупреждение.
 
-- Flutter SDK
-- Dart SDK
+### ⌨️ Горячие клавиши
 
-### Установка
+| Действие | По умолчанию |
+| --- | --- |
+| Показать ассистента | `Ctrl+Alt+Space` |
+| Улучшить выделенный текст | `Ctrl+Alt+R` |
+| Исправить ошибки | `Ctrl+Alt+F` |
+| Добавить эмодзи | `Ctrl+Alt+E` |
 
-1. **Клонировать репозиторий**:
-    ```bash
-    git clone https://github.com/0niel/yandex-keyboard-desktop.git
-    cd yandex-keyboard-desktop
-    ```
+Все сочетания можно изменить в настройках приложения.
 
-2. **Установить зависимости**:
-    ```bash
-    flutter pub get
-    ```
+### 🔒 Данные и конфиденциальность
 
-3. **Запустить приложение**:
-    ```bash
-    flutter run
-    ```
+Выделенный текст отправляется в сервис обработки только после запуска действия пользователем. Локальная история и диагностика по умолчанию отключены. При включении они не сохраняют исходный или обработанный текст, содержимое буфера обмена, заголовки окон и URL.
 
-## Использование
+### 🛠 Разработка
 
-- **Активировать приложение**: Нажмите `Ctrl+R` для активации плавающего окна и обработки текста из буфера обмена.
-- **Системный трей**: Щелкните правой кнопкой мыши по значку в трее, чтобы показать окно или выйти из приложения.
+Для сборки нужны Flutter 3.44.2 и настроенный Windows desktop toolchain.
 
-## Загрузка
+```powershell
+git clone https://github.com/0niel/yandex-keyboard-desktop.git
+cd yandex-keyboard-desktop
+flutter pub get --enforce-lockfile
+flutter run -d windows
+```
 
-- [Скачать последнюю версию](https://github.com/0niel/yandex-keyboard-desktop/releases) 🚀
+Релизная сборка:
 
-> **Примечание**: В настоящее время приложение поддерживает только **Windows**.
-> - macOS: 🚧 В разработке
-> - Linux: 🚧 В разработке
+```powershell
+flutter build windows --release
+```
 
-## Благодарности
+GitHub Actions проверяет форматирование, статический анализ, тесты и Windows-сборку, после чего публикует portable-архив с контрольной суммой SHA-256. Версия формируется из даты коммита по UTC и общего количества коммитов.
 
-Спасибо Яндексу за невероятный API, который поддерживает это приложение. 🙌
+## 📄 License · Лицензия
 
-## Лицензия
-
-Этот проект лицензирован на условиях лицензии MIT.
-
----
+Distributed under the [MIT License](LICENSE) · Проект распространяется по лицензии [MIT](LICENSE).
