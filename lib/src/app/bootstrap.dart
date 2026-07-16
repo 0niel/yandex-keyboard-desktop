@@ -156,6 +156,7 @@ Future<void> bootstrap(List<String> arguments) async {
       }
       unawaited(() async {
         try {
+          if (!await overlayPresenter.ensureHostSurface()) return;
           if (textController.requiresManualPaste) {
             overlayGateway.setOriginalForegroundWindow(0);
           } else {
@@ -357,6 +358,7 @@ class _AppState extends State<App>
     windowManager.addListener(this);
     trayManager.addListener(this);
     WidgetsBinding.instance.addObserver(this);
+    widget.overlayPresenter.attachHostGuard(_ensureOverlayHostSurface);
     final runtimeSource = widget.hotkeyRegistrar;
     if (runtimeSource is HotkeyRuntimeSource) {
       final source = runtimeSource as HotkeyRuntimeSource;
@@ -474,11 +476,29 @@ class _AppState extends State<App>
       unawaited(widget.textController.close());
       unawaited(widget.privacyActivityController.close());
     }
+    widget.overlayPresenter.detachHostGuard(_ensureOverlayHostSurface);
     windowManager.removeListener(this);
     trayManager.removeListener(this);
     WidgetsBinding.instance.removeObserver(this);
     unawaited(_hotkeyRuntimeSubscription?.cancel());
     super.dispose();
+  }
+
+  Future<bool> _ensureOverlayHostSurface() async {
+    var ready = false;
+    await _runSurfaceTransition(() async {
+      if (_surface == DesktopSurface.overlay) {
+        ready = true;
+        return;
+      }
+      if (!await _confirmSettingsExitIfNeeded()) return;
+      if (!mounted) return;
+      setState(() => _surface = DesktopSurface.overlay);
+      await windowManager.hide();
+      await WidgetsBinding.instance.endOfFrame;
+      ready = true;
+    });
+    return ready;
   }
 
   @override
