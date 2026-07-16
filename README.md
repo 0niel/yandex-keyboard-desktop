@@ -11,7 +11,9 @@ Welcome to the Yandex Keyboard Desktop application! This project leverages the p
 - **Automatic Pasting**: Simulates `Ctrl+V` to paste processed text into the focused window. 📋
 - **Smart Text Enhancements**: Enhance your text, correct errors, and add emojis. Previously available only with Yandex Keyboard on Apple and Android devices. 🤖
 
-https://github.com/user-attachments/assets/840b0d59-00b5-464f-8b66-8838583d3299
+
+https://github.com/user-attachments/assets/c2ddd419-5f81-49e3-b851-718b5502678a
+
 
 ## Getting Started
 
