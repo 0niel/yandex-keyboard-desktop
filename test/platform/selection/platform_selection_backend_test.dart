@@ -112,6 +112,7 @@ void main() {
       rollbackText: copy.text,
     );
     platform.revision++;
+    clipboard.text = 'external';
 
     expect(
       await backend.restoreClipboard(
@@ -643,6 +644,68 @@ void main() {
         ),
       ),
     );
+  });
+
+  test('commits and restores across a phantom revision bump', () async {
+    final platform = _FakeSelectionPlatformGateway(atomicTransactions: true);
+    final clipboard = _FakeClipboard(platform, 'original');
+    final backend = PlatformSelectionBackend(
+      platform: platform,
+      clipboard: clipboard,
+    );
+    final target = await backend.captureTarget();
+    final snapshot = await backend.snapshotClipboard();
+    await backend.focus(target);
+    final lease = await backend.stageReplacement(
+      target,
+      'improved',
+      expectedRevision: platform.revision,
+      rollbackText: 'original',
+    );
+    platform.revision++;
+
+    final verification = await backend.commitReplacement(lease);
+    final restore = await backend.restoreClipboard(
+      snapshot,
+      expectedRevision: lease.clipboardRevision,
+    );
+
+    expect(verification, CommitVerification.unverified);
+    expect(platform.replacement, 'improved');
+    expect(restore, ClipboardRestoreResult.restored);
+    expect(clipboard.text, 'original');
+  });
+
+  test('a phantom bump with foreign clipboard text still loses the lease',
+      () async {
+    final platform = _FakeSelectionPlatformGateway(atomicTransactions: true);
+    final clipboard = _FakeClipboard(platform, 'original');
+    final backend = PlatformSelectionBackend(
+      platform: platform,
+      clipboard: clipboard,
+    );
+    final target = await backend.captureTarget();
+    await backend.focus(target);
+    final lease = await backend.stageReplacement(
+      target,
+      'improved',
+      expectedRevision: platform.revision,
+      rollbackText: 'original',
+    );
+    platform.revision++;
+    clipboard.text = 'external';
+
+    await expectLater(
+      backend.commitReplacement(lease),
+      throwsA(
+        isA<SelectionBackendException>().having(
+          (error) => error.diagnosticCode,
+          'diagnosticCode',
+          'selection_stage_lease_lost',
+        ),
+      ),
+    );
+    expect(platform.replacement, isNull);
   });
 
   test('rejects a stale copy instead of reusing clipboard contents', () async {

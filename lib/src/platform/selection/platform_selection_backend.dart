@@ -430,10 +430,7 @@ final class PlatformSelectionBackend
         diagnosticCode: 'selection_lease_missing',
       );
     }
-    final beforeRead = await _platform.getClipboardRevision();
-    final afterRead = await _platform.getClipboardRevision();
-    if (beforeRead != lease.clipboardRevision ||
-        afterRead != lease.clipboardRevision ||
+    if (!await _clipboardStillOwned(lease.clipboardRevision, replacement) ||
         !await _matchesTarget(identity) ||
         await _platform.getForegroundWindow() != identity.handle) {
       throw const SelectionBackendException(
@@ -453,6 +450,38 @@ final class PlatformSelectionBackend
     return CommitVerification.unverified;
   }
 
+  static bool _sameClipboardText(String left, String right) {
+    if (left == right) return true;
+    String normalize(String value) => value.replaceAll('\r\n', '\n');
+    return normalize(left) == normalize(right);
+  }
+
+  Future<String?> _readClipboardTextSafely() async {
+    for (var attempt = 0; attempt < 2; attempt++) {
+      try {
+        return await _clipboard.readText();
+      } catch (_) {
+        if (attempt == 0) {
+          await Future<void>.delayed(const Duration(milliseconds: 30));
+        }
+      }
+    }
+    return null;
+  }
+
+  Future<bool> _clipboardStillOwned(int revision, String expectedText) async {
+    final currentRevision = await _platform.getClipboardRevision();
+    if (currentRevision == revision) return true;
+    final currentText = await _readClipboardTextSafely();
+    if (currentText == null ||
+        !_sameClipboardText(currentText, expectedText) ||
+        await _platform.getClipboardRevision() != currentRevision) {
+      return false;
+    }
+    _ownedClipboardText[currentRevision] = expectedText;
+    return true;
+  }
+
   @override
   Future<ClipboardRestoreResult> restoreClipboard(
     ClipboardSnapshot snapshot, {
@@ -460,18 +489,19 @@ final class PlatformSelectionBackend
     bool restoreOriginal = true,
   }) async {
     try {
-      final currentRevision = await _platform.getClipboardRevision();
       final expectedText = _ownedClipboardText[expectedRevision];
-      if (currentRevision != expectedRevision || expectedText == null) {
+      if (expectedText == null ||
+          !await _clipboardStillOwned(expectedRevision, expectedText)) {
         return ClipboardRestoreResult.skippedExternalChange;
       }
+      final currentRevision = await _platform.getClipboardRevision();
       final supportsAtomicTransactions =
           _platform.supportsAtomicTextClipboardTransactions();
       if (!supportsAtomicTransactions) {
         final currentText = await _clipboard.readText();
         final revisionAfterRead = await _platform.getClipboardRevision();
-        if (revisionAfterRead != expectedRevision ||
-            currentText != expectedText) {
+        if (revisionAfterRead != currentRevision ||
+            !_sameClipboardText(currentText, expectedText)) {
           return ClipboardRestoreResult.skippedExternalChange;
         }
       }
@@ -488,7 +518,7 @@ final class PlatformSelectionBackend
       final originalData = original!;
       final usesNativeSnapshot = originalData is PlatformClipboardSnapshot;
       if (supportsAtomicTransactions || usesNativeSnapshot) {
-        var recoveryRevision = expectedRevision;
+        var recoveryRevision = currentRevision;
         var recoveryText = expectedText;
         for (var attempt = 0; attempt < 3; attempt++) {
           try {
@@ -559,7 +589,7 @@ final class PlatformSelectionBackend
           }
         }
       } else {
-        if (await _platform.getClipboardRevision() != expectedRevision) {
+        if (await _platform.getClipboardRevision() != currentRevision) {
           return ClipboardRestoreResult.skippedExternalChange;
         }
         if (originalData is! String) {

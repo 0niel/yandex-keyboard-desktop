@@ -646,42 +646,50 @@ class WindowsPlatformGateway
           retryable: true,
         );
       }
+      var revisionMatched = false;
+      var desiredWritten = false;
+      var rollbackWritten = false;
       try {
-        if (GetClipboardSequenceNumber() != expectedRevision) return null;
-        if (GetClipboardSequenceNumber() != expectedRevision) return null;
-        if (EmptyClipboard() == 0) {
-          throw const ClipboardTransactionException(
-            code: 'clipboard_empty_failed',
-            retryable: true,
-          );
-        }
-        if (SetClipboardData(
-              CLIPBOARD_FORMAT.CF_UNICODETEXT,
-              desiredMemory.address,
-            ) ==
-            0) {
+        if (GetClipboardSequenceNumber() == expectedRevision) {
+          revisionMatched = true;
+          if (EmptyClipboard() == 0) {
+            throw const ClipboardTransactionException(
+              code: 'clipboard_empty_failed',
+              retryable: true,
+            );
+          }
           if (SetClipboardData(
+                CLIPBOARD_FORMAT.CF_UNICODETEXT,
+                desiredMemory.address,
+              ) !=
+              0) {
+            desiredTransferred = true;
+            desiredWritten = true;
+            _excludeStagedContentFromClipboardMonitors();
+          } else if (SetClipboardData(
                 CLIPBOARD_FORMAT.CF_UNICODETEXT,
                 rollbackMemory.address,
               ) !=
               0) {
             rollbackTransferred = true;
-            throw AtomicClipboardMutationException(
-              revision: GetClipboardSequenceNumber(),
-              currentText: rollbackText,
-            );
+            rollbackWritten = true;
           }
-          throw AtomicClipboardMutationException(
-            revision: GetClipboardSequenceNumber(),
-            currentText: '',
-          );
         }
-        desiredTransferred = true;
-        _excludeStagedContentFromClipboardMonitors();
-        return GetClipboardSequenceNumber();
       } finally {
         CloseClipboard();
       }
+      if (!revisionMatched) return null;
+      if (desiredWritten) return GetClipboardSequenceNumber();
+      if (rollbackWritten) {
+        throw AtomicClipboardMutationException(
+          revision: GetClipboardSequenceNumber(),
+          currentText: rollbackText,
+        );
+      }
+      throw AtomicClipboardMutationException(
+        revision: GetClipboardSequenceNumber(),
+        currentText: '',
+      );
     } finally {
       if (!desiredTransferred) GlobalFree(desiredMemory);
       if (!rollbackTransferred && rollbackMemory != null) {
