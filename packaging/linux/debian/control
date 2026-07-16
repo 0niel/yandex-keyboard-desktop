@@ -1,0 +1,12 @@
+Source: yandex-keyboard-desktop
+Section: utils
+Priority: optional
+Maintainer: Oniel
+Standards-Version: 4.6.2
+
+Package: yandex-keyboard-desktop
+Architecture: any
+Depends: libegl1, libgles2, libgl1-mesa-dri, ${shlibs:Depends}
+Description: Privacy-conscious selected-text assistant
+ A capability-based desktop assistant with configurable global shortcuts,
+ transactional clipboard recovery, and English/Russian localization.

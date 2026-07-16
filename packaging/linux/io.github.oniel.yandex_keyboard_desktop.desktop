@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Yandex Keyboard Desktop
+Comment=Transform selected text with configurable keyboard shortcuts
+Exec=/usr/bin/yandex-keyboard-desktop
+Icon=io.github.oniel.yandex_keyboard_desktop
+Terminal=false
+Categories=Utility;TextTools;
+StartupNotify=false
+StartupWMClass=io.github.oniel.yandex_keyboard_desktop

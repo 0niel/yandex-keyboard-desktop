@@ -1,22 +1,20 @@
-# Project-level configuration.
 cmake_minimum_required(VERSION 3.10)
 project(runner LANGUAGES CXX)
 
-# The name of the executable created for the application. Change this to change
-# the on-disk name of your application.
-set(BINARY_NAME "yandex_keyboard_desktop")
-# The unique GTK application identifier for this application. See:
-# https://wiki.gnome.org/HowDoI/ChooseApplicationID
-set(APPLICATION_ID "com.example.yandex_keyboard_desktop")
+option(YKD_ENABLE_SANITIZERS
+  "Enable AddressSanitizer and UndefinedBehaviorSanitizer for native runner code"
+  OFF)
+option(YKD_BUILD_PLUGIN_LIFECYCLE_TESTS
+  "Build the Linux native bridge GObject lifecycle test"
+  OFF)
 
-# Explicitly opt in to modern CMake behaviors to avoid warnings with recent
-# versions of CMake.
+set(BINARY_NAME "yandex_keyboard_desktop")
+set(APPLICATION_ID "io.github.oniel.yandex_keyboard_desktop")
+
 cmake_policy(SET CMP0063 NEW)
 
-# Load bundled libraries from the lib/ directory relative to the binary.
 set(CMAKE_INSTALL_RPATH "$ORIGIN/lib")
 
-# Root filesystem for cross-building.
 if(FLUTTER_TARGET_PLATFORM_SYSROOT)
   set(CMAKE_SYSROOT ${FLUTTER_TARGET_PLATFORM_SYSROOT})
   set(CMAKE_FIND_ROOT_PATH ${CMAKE_SYSROOT})
@@ -26,7 +24,6 @@ if(FLUTTER_TARGET_PLATFORM_SYSROOT)
   set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
 endif()
 
-# Define build configuration options.
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   set(CMAKE_BUILD_TYPE "Debug" CACHE
     STRING "Flutter build mode" FORCE)
@@ -34,11 +31,6 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Profile" "Release")
 endif()
 
-# Compilation settings that should be applied to most targets.
-#
-# Be cautious about adding new options here, as plugins use this function by
-# default. In most cases, you should add new options to specific targets instead
-# of modifying this function.
 function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_features(${TARGET} PUBLIC cxx_std_14)
   target_compile_options(${TARGET} PRIVATE -Wall -Werror)
@@ -46,61 +38,144 @@ function(APPLY_STANDARD_SETTINGS TARGET)
   target_compile_definitions(${TARGET} PRIVATE "$<$<NOT:$<CONFIG:Debug>>:NDEBUG>")
 endfunction()
 
-# Flutter library and tool build rules.
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
-# System-level dependencies.
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(GTK REQUIRED IMPORTED_TARGET gtk+-3.0)
+pkg_check_modules(GIO REQUIRED IMPORTED_TARGET gio-2.0)
+pkg_check_modules(FONTCONFIG REQUIRED IMPORTED_TARGET fontconfig)
+pkg_check_modules(X11 REQUIRED IMPORTED_TARGET x11)
+pkg_check_modules(XFIXES REQUIRED IMPORTED_TARGET xfixes)
+pkg_check_modules(XTST REQUIRED IMPORTED_TARGET xtst)
+pkg_check_modules(XRES REQUIRED IMPORTED_TARGET xres>=1.2)
 
 add_definitions(-DAPPLICATION_ID="${APPLICATION_ID}")
 
-# Define the application target. To change its name, change BINARY_NAME above,
-# not the value here, or `flutter run` will no longer work.
-#
-# Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME}
   "main.cc"
   "my_application.cc"
+  "linux_native_bridge_plugin.cc"
+  "wayland_global_shortcuts_plugin.cc"
+  "wayland_global_shortcuts_portal.cc"
+  "x11_clipboard_reader.cc"
+  "x11_clipboard_transaction.cc"
   "${FLUTTER_MANAGED_DIR}/generated_plugin_registrant.cc"
 )
 
-# Apply the standard set of build settings. This can be removed for applications
-# that need different build settings.
 apply_standard_settings(${BINARY_NAME})
+if(YKD_ENABLE_SANITIZERS)
+  target_compile_options(${BINARY_NAME} PRIVATE
+    -fsanitize=address,undefined
+    -fno-omit-frame-pointer
+    -fno-sanitize-recover=undefined
+  )
+  target_link_options(${BINARY_NAME} PRIVATE -fsanitize=address,undefined)
+endif()
 
-# Add dependency libraries. Add any application-specific dependencies here.
 target_link_libraries(${BINARY_NAME} PRIVATE flutter)
 target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GTK)
+target_link_libraries(${BINARY_NAME} PRIVATE PkgConfig::GIO)
+target_link_libraries(${BINARY_NAME} PRIVATE
+  PkgConfig::X11
+  PkgConfig::XFIXES
+  PkgConfig::XTST
+  PkgConfig::XRES
+)
 
-# Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
 
-# Only the install-generated bundle's copy of the executable will launch
-# correctly, since the resources must in the right relative locations. To avoid
-# people trying to run the unbundled copy, put it in a subdirectory instead of
-# the default top-level location.
 set_target_properties(${BINARY_NAME}
   PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/intermediates_do_not_run"
 )
 
 
-# Generated plugin build rules, which manage building the plugins and adding
-# them to the application.
 include(flutter/generated_plugins.cmake)
 
+foreach(plugin ${FLUTTER_PLUGIN_LIST})
+  if(TARGET ${plugin}_plugin)
+    set_target_properties(${plugin}_plugin PROPERTIES
+      BUILD_WITH_INSTALL_RPATH TRUE
+      INSTALL_RPATH "$ORIGIN")
+  endif()
+endforeach(plugin)
 
-# === Installation ===
-# By default, "installing" just makes a relocatable bundle in the build
-# directory.
+if(YKD_BUILD_PLUGIN_LIFECYCLE_TESTS)
+  enable_testing()
+  add_executable(linux_native_bridge_plugin_lifecycle_test
+    "tests/linux_native_bridge_plugin_lifecycle_test.cc"
+    "linux_native_bridge_plugin.cc"
+    "x11_clipboard_reader.cc"
+    "x11_clipboard_transaction.cc"
+  )
+  target_compile_features(linux_native_bridge_plugin_lifecycle_test
+    PRIVATE cxx_std_17)
+  target_include_directories(linux_native_bridge_plugin_lifecycle_test
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_options(linux_native_bridge_plugin_lifecycle_test PRIVATE
+    -Wall -Wextra -Werror)
+  target_compile_definitions(linux_native_bridge_plugin_lifecycle_test
+    PRIVATE YKD_ENABLE_TEST_HOOKS=1)
+  if(YKD_ENABLE_SANITIZERS)
+    target_compile_options(linux_native_bridge_plugin_lifecycle_test PRIVATE
+      -fsanitize=address,undefined
+      -fno-omit-frame-pointer
+      -fno-sanitize-recover=undefined)
+    target_link_options(linux_native_bridge_plugin_lifecycle_test PRIVATE
+      -fsanitize=address,undefined)
+  endif()
+  target_link_libraries(linux_native_bridge_plugin_lifecycle_test PRIVATE
+    flutter
+    PkgConfig::GTK
+    PkgConfig::FONTCONFIG
+    PkgConfig::X11
+    PkgConfig::XFIXES
+    PkgConfig::XTST
+    PkgConfig::XRES
+  )
+  add_dependencies(linux_native_bridge_plugin_lifecycle_test flutter_assemble)
+  set_target_properties(linux_native_bridge_plugin_lifecycle_test PROPERTIES
+    BUILD_RPATH "${FLUTTER_MANAGED_DIR}/ephemeral")
+  add_test(NAME linux_native_bridge_plugin_lifecycle
+    COMMAND linux_native_bridge_plugin_lifecycle_test)
+
+  add_executable(wayland_global_shortcuts_plugin_contract_test
+    "tests/wayland_global_shortcuts_plugin_contract_test.cc"
+    "wayland_global_shortcuts_plugin.cc"
+    "wayland_global_shortcuts_portal.cc"
+  )
+  target_compile_features(wayland_global_shortcuts_plugin_contract_test
+    PRIVATE cxx_std_17)
+  target_include_directories(wayland_global_shortcuts_plugin_contract_test
+    PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+  target_compile_options(wayland_global_shortcuts_plugin_contract_test PRIVATE
+    -Wall -Wextra -Werror)
+  target_compile_definitions(wayland_global_shortcuts_plugin_contract_test
+    PRIVATE YKD_ENABLE_TEST_HOOKS=1)
+  if(YKD_ENABLE_SANITIZERS)
+    target_compile_options(wayland_global_shortcuts_plugin_contract_test
+      PRIVATE -fsanitize=address,undefined -fno-omit-frame-pointer
+      -fno-sanitize-recover=undefined)
+    target_link_options(wayland_global_shortcuts_plugin_contract_test
+      PRIVATE -fsanitize=address,undefined)
+  endif()
+  target_link_libraries(wayland_global_shortcuts_plugin_contract_test PRIVATE
+    flutter PkgConfig::GIO PkgConfig::GTK)
+  add_dependencies(wayland_global_shortcuts_plugin_contract_test
+    flutter_assemble)
+  set_target_properties(wayland_global_shortcuts_plugin_contract_test
+    PROPERTIES BUILD_RPATH "${FLUTTER_MANAGED_DIR}/ephemeral")
+  add_test(NAME wayland_global_shortcuts_plugin_contract
+    COMMAND wayland_global_shortcuts_plugin_contract_test)
+endif()
+
+
 set(BUILD_BUNDLE_DIR "${PROJECT_BINARY_DIR}/bundle")
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
   set(CMAKE_INSTALL_PREFIX "${BUILD_BUNDLE_DIR}" CACHE PATH "..." FORCE)
 endif()
 
-# Start with a clean build bundle directory every time.
 install(CODE "
   file(REMOVE_RECURSE \"${BUILD_BUNDLE_DIR}/\")
   " COMPONENT Runtime)
@@ -123,14 +198,11 @@ foreach(bundled_library ${PLUGIN_BUNDLED_LIBRARIES})
     COMPONENT Runtime)
 endforeach(bundled_library)
 
-# Copy the native assets provided by the build.dart from all packages.
 set(NATIVE_ASSETS_DIR "${PROJECT_BUILD_DIR}native_assets/linux/")
 install(DIRECTORY "${NATIVE_ASSETS_DIR}"
    DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
    COMPONENT Runtime)
 
-# Fully re-copy the assets directory on each build to avoid having stale files
-# from a previous install.
 set(FLUTTER_ASSET_DIR_NAME "flutter_assets")
 install(CODE "
   file(REMOVE_RECURSE \"${INSTALL_BUNDLE_DATA_DIR}/${FLUTTER_ASSET_DIR_NAME}\")
@@ -138,7 +210,6 @@ install(CODE "
 install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
   DESTINATION "${INSTALL_BUNDLE_DATA_DIR}" COMPONENT Runtime)
 
-# Install the AOT library on non-Debug builds only.
 if(NOT CMAKE_BUILD_TYPE MATCHES "Debug")
   install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
     COMPONENT Runtime)

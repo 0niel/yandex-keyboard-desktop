@@ -1,0 +1,233 @@
+name: 🚀 Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-release
+  cancel-in-progress: false
+
+jobs:
+  metadata:
+    name: 🧮 Calendar version
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      build-name: ${{ steps.version.outputs.build-name }}
+      build-number: ${{ steps.version.outputs.build-number }}
+      release-version: ${{ steps.version.outputs.release-version }}
+      tag: ${{ steps.version.outputs.tag }}
+      title: ${{ steps.version.outputs.title }}
+      windows-file: ${{ steps.version.outputs.windows-file }}
+    steps:
+      - name: Check out exact release revision
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+        with:
+          fetch-depth: 0
+
+      - name: Derive deterministic calendar version
+        id: version
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF" != "refs/heads/main" ]]; then
+            echo "Releases are allowed only from the main branch, got $GITHUB_REF." >&2
+            exit 1
+          fi
+          BUILD_NUMBER=$(git rev-list --count "$GITHUB_SHA")
+          if (( BUILD_NUMBER < 1 || BUILD_NUMBER > 65535 )); then
+            echo "Build number must fit the fourth Windows version field." >&2
+            exit 1
+          fi
+
+          commit_epoch=$(git show -s --format=%ct "$GITHUB_SHA")
+          read -r year month day < <(
+            date --utc --date="@$commit_epoch" '+%Y %-m %-d'
+          )
+          release_date=$(date --utc --date="@$commit_epoch" '+%Y.%m.%d')
+          build_name="$year.$month.$day"
+          release_version="$release_date.$BUILD_NUMBER"
+          tag="v$release_version"
+
+          {
+            echo "build-name=$build_name"
+            echo "build-number=$BUILD_NUMBER"
+            echo "release-version=$release_version"
+            echo "tag=$tag"
+            echo "title=⌨️ Yandex Keyboard Desktop $release_date · build $BUILD_NUMBER"
+            echo "windows-file=Yandex-Keyboard-Desktop-Windows-x64-portable-$tag.zip"
+          } >> "$GITHUB_OUTPUT"
+
+  quality:
+    name: ✅ Quality gates for exact release revision
+    uses: ./.github/workflows/quality.yml
+
+  windows-portable:
+    name: 🪟 Windows x64 portable
+    runs-on: windows-latest
+    needs: [metadata, quality]
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: 3.44.2
+          channel: stable
+          cache: true
+
+      - name: Resolve locked dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Build versioned portable bundle
+        shell: pwsh
+        env:
+          BUILD_NAME: ${{ needs.metadata.outputs.build-name }}
+          BUILD_NUMBER: ${{ needs.metadata.outputs.build-number }}
+        run: |
+          flutter build windows --release `
+            --build-name=$env:BUILD_NAME --build-number=$env:BUILD_NUMBER
+
+      - name: Verify, archive, and audit exact portable bundle
+        shell: pwsh
+        env:
+          RELEASE_FILE: ${{ needs.metadata.outputs.windows-file }}
+          BUILD_NAME: ${{ needs.metadata.outputs.build-name }}
+          BUILD_NUMBER: ${{ needs.metadata.outputs.build-number }}
+        run: |
+          New-Item -ItemType Directory -Force build/release | Out-Null
+          $source = (Resolve-Path "build/windows/x64/runner/Release").Path
+          $executable = Join-Path $source "yandex_keyboard_desktop.exe"
+          $actualVersion = (Get-Item -LiteralPath $executable).VersionInfo.FileVersionRaw.ToString()
+          $expectedVersion = "$env:BUILD_NAME.$env:BUILD_NUMBER"
+          if ($actualVersion -ne $expectedVersion) {
+            throw "Portable executable version is $actualVersion; expected $expectedVersion."
+          }
+          $staging = New-Item -ItemType Directory -Path "build/windows-portable"
+          $buildOnlyExtensions = @(
+            ".appinstaller", ".cer", ".exp", ".ilk", ".lib", ".msix", ".pdb"
+          )
+          foreach ($entry in Get-ChildItem -LiteralPath $source) {
+            if ($entry.PSIsContainer -or
+                $buildOnlyExtensions -notcontains $entry.Extension.ToLowerInvariant()) {
+              Copy-Item -LiteralPath $entry.FullName `
+                -Destination $staging.FullName -Recurse
+            }
+          }
+          $destination = "build/release/$env:RELEASE_FILE"
+          [IO.Compression.ZipFile]::CreateFromDirectory(
+            $staging.FullName,
+            (Join-Path (Get-Location) $destination),
+            [IO.Compression.CompressionLevel]::Optimal,
+            $false
+          )
+          python tool/check_windows_portable.py $destination
+
+      - name: Upload versioned Windows package
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: ykd-release-windows
+          path: build/release/${{ needs.metadata.outputs.windows-file }}
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: 🚀 Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs: [metadata, windows-portable]
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download exact release artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
+        with:
+          pattern: ykd-release-*
+          path: dist
+          merge-multiple: true
+
+      - name: Generate deterministic SHA-256 manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd dist
+          find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\0' \
+            | sort -z \
+            | xargs -0 sha256sum > SHA256SUMS
+          test "$(wc -l < SHA256SUMS)" -eq 1
+          sha256sum --check SHA256SUMS
+
+      - name: Attest released packages and checksum manifest
+        uses: actions/attest@a1948c3f048ba23858d222213b7c278aabede763
+        with:
+          subject-path: dist/*
+
+      - name: Create or repair GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.metadata.outputs.tag }}
+          RELEASE_TITLE: ${{ needs.metadata.outputs.title }}
+          RELEASE_VERSION: ${{ needs.metadata.outputs.release-version }}
+          WINDOWS_FILE: ${{ needs.metadata.outputs.windows-file }}
+        run: |
+          set -euo pipefail
+          release_intro=$(cat <<EOF
+          ## 📦 Скачать
+
+          | Платформа | Файл | Что внутри |
+          |---|---|---|
+          | 🪟 Windows x64 | \`$WINDOWS_FILE\` | Portable ZIP — распаковать и запустить |
+
+          ## 🛡️ Проверка
+
+          - 🔐 SHA-256 архива находится в \`SHA256SUMS\`.
+          - ✅ Portable-архив прошёл quality gates и аудит.
+          - 🔎 Происхождение сборки можно проверить через GitHub artifact attestations.
+          - 🧱 Версия \`$RELEASE_VERSION\` привязана к commit \`$GITHUB_SHA\`.
+
+          > ⚠️ Windows portable не имеет code-signing подписи.
+
+          ---
+          EOF
+          )
+          assets=(
+            "dist/$WINDOWS_FILE#Windows x64 portable ZIP"
+            "dist/SHA256SUMS#SHA-256 checksums"
+          )
+          tag_target=""
+          if tag_object=$(gh api \
+            "repos/$GITHUB_REPOSITORY/git/ref/tags/$RELEASE_TAG" 2>/dev/null); then
+            tag_target=$(jq -r '.object.sha' <<<"$tag_object")
+            tag_type=$(jq -r '.object.type' <<<"$tag_object")
+            if [[ "$tag_type" == "tag" ]]; then
+              tag_target=$(gh api \
+                "repos/$GITHUB_REPOSITORY/git/tags/$tag_target" \
+                --jq '.object.sha')
+            fi
+            if [[ "$tag_target" != "$GITHUB_SHA" ]]; then
+              echo "Existing tag $RELEASE_TAG points to $tag_target, not $GITHUB_SHA." >&2
+              exit 1
+            fi
+          fi
+          if gh release view "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "${assets[@]}" \
+              --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$RELEASE_TAG" "${assets[@]}" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "$RELEASE_TITLE" \
+              --notes "$release_intro" \
+              --generate-notes \
+              --latest
+          fi

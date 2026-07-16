@@ -1,0 +1,227 @@
+name: Quality
+
+on:
+  workflow_call:
+  workflow_dispatch:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  dependency-review:
+    name: Dependency vulnerability and license review
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Reject vulnerable or incompatible dependency changes
+        uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294
+        with:
+          fail-on-severity: low
+          fail-on-scopes: runtime, development
+          deny-licenses: >-
+            GPL-2.0, GPL-2.0-only, GPL-2.0-or-later,
+            GPL-3.0, GPL-3.0-only, GPL-3.0-or-later,
+            AGPL-3.0, AGPL-3.0-only, AGPL-3.0-or-later,
+            SSPL-1.0
+
+  flutter-quality:
+    name: Flutter quality (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+
+      - name: Install Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+        with:
+          flutter-version: 3.44.2
+          channel: stable
+          cache: true
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes clang cmake ninja-build pkg-config xvfb openbox x11-utils dbus-daemon libglib2.0-dev libgtk-3-dev liblzma-dev libkeybinder-3.0-dev libayatana-appindicator3-dev libx11-dev libxfixes-dev libxtst-dev libxres-dev
+
+      - name: Resolve dependencies
+        run: flutter pub get --enforce-lockfile
+
+      - name: Verify resolved dependency licenses
+        if: runner.os == 'Linux'
+        run: dart run tool/check_dependency_licenses.dart
+
+      - name: Reject resolved Pub advisories and retractions
+        if: runner.os == 'Linux'
+        shell: bash
+        run: dart pub outdated --json | dart run tool/check_pub_security.dart -
+
+      - name: Test Linux native portal and X11 cores with sanitizers
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cmake -S linux/tests -B build/linux-native-tests -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug -DYKD_ENABLE_SANITIZERS=ON
+          cmake --build build/linux-native-tests
+          env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+            ASAN_OPTIONS=detect_leaks=1:abort_on_error=1 \
+            UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 xvfb-run -a \
+            -s '-screen 0 1024x768x24 +extension XFIXES' \
+            ctest --test-dir build/linux-native-tests --output-on-failure
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Check formatting
+        run: >-
+          dart format --output=none --set-exit-if-changed
+          lib test integration_test tool
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Reject Material behavior in desktop UI
+        run: python tool/check_no_material_desktop_ui.py
+
+      - name: Test with coverage
+        run: >-
+          flutter test --branch-coverage
+          --coverage-path=build/coverage/${{ runner.os }}-unit.lcov
+          --concurrency=1
+
+      - name: Enforce foundation coverage
+        run: >-
+          dart run tool/check_coverage.dart
+          build/coverage/${{ runner.os }}-unit.lcov 90
+          --include-prefix=lib/src/features/privacy/
+          --include-prefix=lib/src/features/settings/application/
+          --include-prefix=lib/src/features/settings/data/
+          --include-prefix=lib/src/features/settings/domain/
+          --include-prefix=lib/src/features/text_assistant/application/
+          --include-prefix=lib/src/features/text_assistant/data/
+          --include-prefix=lib/src/features/text_assistant/domain/
+          --include-prefix=lib/src/platform/hotkeys/
+          --include-prefix=lib/src/platform/selection/
+          --include-prefix=lib/src/platform/settings/
+          lib/src/features/text_assistant/application/text_replacement_controller.dart=100
+          lib/src/features/text_assistant/data/yandex_text_processing_repository.dart=100
+          lib/src/features/settings/domain/app_settings.dart=100
+          lib/src/features/privacy/domain/privacy_activity.dart=98
+          lib/src/features/privacy/application/privacy_activity_controller.dart=100
+          lib/src/features/privacy/data/file_privacy_activity_repository.dart=90
+          lib/src/platform/settings/text_assistant_settings_applier.dart=97
+
+      - name: Enforce broad handwritten Dart coverage
+        run: >-
+          dart run tool/check_coverage.dart
+          build/coverage/${{ runner.os }}-unit.lcov 87.5
+          --include-prefix=lib/src/
+          --require-source-root=lib/src/
+          --exclude-prefix=lib/src/platform/windows/uia/win32_uia_gateway.dart
+          --allow-unmeasured=lib/src/app/bootstrap.dart
+          --allow-unmeasured=lib/src/core/domain/text_action.dart
+          --allow-unmeasured=lib/src/platform/platform_runtime.dart
+          --allow-unmeasured=lib/src/platform/selection/selection_backend_factory.dart
+          --allow-unmeasured=lib/src/platform/windows/windows_platform_gateway.dart
+          --allow-unmeasured=lib/src/platform/windows/windows_send_input_gateway.dart
+          --minimum-branch=75
+          --require-branch=lib/src/features/text_assistant/application/text_operation_gate.dart=85
+          --require-branch=lib/src/features/text_assistant/application/text_replacement_controller.dart=85
+          --require-branch=lib/src/features/text_assistant/data/yandex_text_processing_repository.dart=90
+          --require-branch=lib/src/features/settings/domain/app_settings.dart=90
+          --require-branch=lib/src/features/privacy/domain/privacy_activity.dart=85
+          --require-branch=lib/src/features/settings/application/settings_controller.dart=65
+          --require-branch=lib/src/platform/selection/platform_selection_backend.dart=75
+          --require-branch=lib/src/platform/hotkeys/hotkey_manager_registrar.dart=65
+          --require-branch=lib/src/platform/hotkeys/wayland_portal_hotkey_registrar.dart=75
+          --require-branch=lib/src/platform/overlay/overlay_window_controller.dart=75
+
+      - name: Run Windows desktop workflow integration
+        if: runner.os == 'Windows'
+        run: flutter test integration_test/desktop_workflow_test.dart
+
+      - name: Build Windows debug artifact
+        if: runner.os == 'Windows'
+        run: flutter build windows --debug
+
+      - name: Test Windows native clipboard runner boundary
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $runner = Resolve-Path `
+            build/windows/x64/runner/Debug/yandex_keyboard_desktop.exe
+          foreach ($argument in @(
+            '--yandex-keyboard-native-clipboard-memory-self-test',
+            '--yandex-keyboard-native-clipboard-broker-timeout-self-test',
+            '--yandex-keyboard-native-clipboard-broker-integration-self-test',
+            '--yandex-keyboard-native-clipboard-probe'
+          )) {
+            $process = Start-Process -FilePath $runner -ArgumentList $argument `
+              -PassThru -Wait
+            if ($process.ExitCode -ne 0) {
+              throw "Native clipboard probe failed: $argument ($($process.ExitCode))"
+            }
+          }
+
+      - name: Build Linux debug artifact
+        if: runner.os == 'Linux'
+        run: flutter build linux --debug
+
+      - name: Smoke Linux X11 startup
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          set +e
+          env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+            dbus-run-session -- xvfb-run -a timeout 8 \
+            build/linux/x64/debug/bundle/yandex_keyboard_desktop \
+            >linux-smoke.out 2>linux-smoke.err
+          status=$?
+          set -e
+          cat linux-smoke.out
+          cat linux-smoke.err >&2
+          test "$status" -eq 124
+          ! grep -E \
+            'Unhandled Exception|MissingPluginException|PlatformException|CRITICAL|Segmentation|Assertion|BadWindow|double free|invalid pointer' \
+            linux-smoke.err
+
+      - name: Sanitize Linux plugin lifecycle
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          cmake -S linux -B build/linux/x64/debug -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug -DYKD_ENABLE_SANITIZERS=ON \
+            -DYKD_BUILD_PLUGIN_LIFECYCLE_TESTS=ON
+          cmake --build build/linux/x64/debug
+          env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+            ASAN_OPTIONS=detect_leaks=0:abort_on_error=1 \
+            UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+          xvfb-run -a bash tool/run_linux_focus_contract.sh \
+            build/linux/x64/debug
+          cmake --install build/linux/x64/debug --config Debug
+          env -u WAYLAND_DISPLAY GDK_BACKEND=x11 \
+            GALLIUM_DRIVER=softpipe LIBGL_ALWAYS_SOFTWARE=1 \
+            YKD_TEST_OPEN_SETTINGS_MS=400 \
+            YKD_TEST_GRACEFUL_EXIT_MS=1500 \
+            ASAN_OPTIONS=detect_leaks=0:abort_on_error=1 \
+            UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 \
+            dbus-run-session -- xvfb-run -a timeout 15 \
+            build/linux/x64/debug/bundle/yandex_keyboard_desktop \
+            >linux-sanitized.out 2>linux-sanitized.err
+          cat linux-sanitized.out
+          cat linux-sanitized.err >&2
+          ! grep -E \
+            'AddressSanitizer|LeakSanitizer|runtime error:|CRITICAL|BadWindow|double free|invalid pointer' \
+            linux-sanitized.err

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 64" role="img" aria-labelledby="title desc">
+  <title id="title">Yandex Keyboard Desktop</title>
+  <desc id="desc">Flat red transformation symbol and product name</desc>
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#FF0032"/>
+  <path d="M32 15c1.8 10 5 13.2 15 17-10 1.8-13.2 5-15 17-1.8-12-5-15.2-15-17 10-3.8 13.2-7 15-17Z" fill="#fff"/>
+  <text x="80" y="40" fill="#111" font-family="Inter, Segoe UI, sans-serif" font-size="26" font-weight="700" letter-spacing="-.6">Yandex Keyboard</text>
+</svg>

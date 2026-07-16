@@ -1,0 +1,28 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "action_hint" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Transforms the current selection only" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Изменяет только текущее выделение" } } } },
+    "cancelled" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Cancelled" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Отменено" } } } },
+    "completed" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Text replaced" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Текст заменён" } } } },
+    "default_action" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Default action" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Действие по умолчанию" } } } },
+    "delete" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Delete" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Удалить" } } } },
+    "emojify" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Emojify" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Эмодзи" } } } },
+    "fix" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Fix" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Исправить" } } } },
+    "full_access_required" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Enable Full Access to use online actions" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Включите полный доступ для онлайн-действий" } } } },
+    "letters" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Letters" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Буквы" } } } },
+    "next_keyboard" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Next keyboard" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Следующая клавиатура" } } } },
+    "numbers" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Numbers" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Цифры" } } } },
+    "processing" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Processing…" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Обработка…" } } } },
+    "request_failed" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Could not process text" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Не удалось обработать текст" } } } },
+    "service_unavailable" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Online actions are unavailable in this build" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Онлайн-действия недоступны в этой сборке" } } } },
+    "return" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Return" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Ввод" } } } },
+    "rewrite" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Improve" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Улучшить" } } } },
+    "select_text" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Select text, then choose an action" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выделите текст и выберите действие" } } } },
+    "selection_changed" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Selection changed; nothing was replaced" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выделение изменилось — замена отменена" } } } },
+    "selection_too_large" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Selection is too large" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Выделение слишком большое" } } } }
+    ,"shift" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Shift" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Регистр" } } } }
+    ,"space" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Space" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Пробел" } } } }
+    ,"symbols" : { "localizations" : { "en" : { "stringUnit" : { "state" : "translated", "value" : "Symbols" } }, "ru" : { "stringUnit" : { "state" : "translated", "value" : "Символы" } } } }
+  },
+  "version" : "1.0"
+}
