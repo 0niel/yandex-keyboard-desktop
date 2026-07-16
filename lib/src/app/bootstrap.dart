@@ -418,6 +418,7 @@ class _AppState extends State<App>
     await windowManager.setSize(size);
     await windowManager.setAlwaysOnTop(true);
     await windowManager.center();
+    await WidgetsBinding.instance.endOfFrame;
     await _showOverlayWindowInactive(widget.overlayGateway);
   }
 

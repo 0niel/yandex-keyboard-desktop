@@ -2,6 +2,7 @@
 
 #include <flutter/standard_method_codec.h>
 
+#include <algorithm>
 #include <optional>
 
 #include "flutter/generated_plugin_registrant.h"
@@ -10,6 +11,7 @@ namespace {
 
 constexpr char kHotkeyChannel[] = "ykd/native_hotkeys";
 constexpr char kOverlayChannel[] = "ykd/overlay";
+constexpr UINT kHotkeyMessage = WM_APP + 0x101;
 constexpr UINT kOutsideClickMessage = WM_APP + 0x102;
 
 FlutterWindow* g_hotkey_window = nullptr;
@@ -22,6 +24,19 @@ int ReadInt(const flutter::EncodableMap& map, const char* key) {
     return static_cast<int>(*value);
   }
   return 0;
+}
+
+bool ModifierDown(int virtual_key) {
+  return (::GetAsyncKeyState(virtual_key) & 0x8000) != 0;
+}
+
+UINT CurrentModifiers() {
+  UINT modifiers = 0;
+  if (ModifierDown(VK_MENU)) modifiers |= MOD_ALT;
+  if (ModifierDown(VK_CONTROL)) modifiers |= MOD_CONTROL;
+  if (ModifierDown(VK_SHIFT)) modifiers |= MOD_SHIFT;
+  if (ModifierDown(VK_LWIN) || ModifierDown(VK_RWIN)) modifiers |= MOD_WIN;
+  return modifiers;
 }
 
 }
@@ -70,6 +85,7 @@ bool FlutterWindow::OnCreate() {
 }
 
 void FlutterWindow::OnDestroy() {
+  ReleaseLowLevelHook();
   SetOutsideClickWatch(false);
   for (const int id : hotkey_ids_) {
     ::UnregisterHotKey(GetHandle(), id);
@@ -113,6 +129,49 @@ LRESULT CALLBACK FlutterWindow::LowLevelMouseProc(int code, WPARAM wparam,
   return ::CallNextHookEx(nullptr, code, wparam, lparam);
 }
 
+bool FlutterWindow::EnsureLowLevelHook() {
+  if (keyboard_hook_ != nullptr) return true;
+  keyboard_hook_ = ::SetWindowsHookExW(
+      WH_KEYBOARD_LL, &FlutterWindow::LowLevelKeyboardProc,
+      ::GetModuleHandleW(nullptr), 0);
+  return keyboard_hook_ != nullptr;
+}
+
+void FlutterWindow::ReleaseLowLevelHook() {
+  if (keyboard_hook_ != nullptr) {
+    ::UnhookWindowsHookEx(keyboard_hook_);
+    keyboard_hook_ = nullptr;
+  }
+  low_level_hotkeys_.clear();
+}
+
+LRESULT CALLBACK FlutterWindow::LowLevelKeyboardProc(int code, WPARAM wparam,
+                                                     LPARAM lparam) {
+  FlutterWindow* window = g_hotkey_window;
+  if (code == HC_ACTION && window != nullptr) {
+    const auto* event = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
+    const bool key_down = wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN;
+    const bool key_up = wparam == WM_KEYUP || wparam == WM_SYSKEYUP;
+    const UINT modifiers = CurrentModifiers();
+    for (auto& hotkey : window->low_level_hotkeys_) {
+      if (hotkey.key != event->vkCode) continue;
+      if (key_up) {
+        hotkey.active = false;
+        continue;
+      }
+      if (key_down && hotkey.modifiers == modifiers) {
+        if (!hotkey.active) {
+          hotkey.active = true;
+          ::PostMessageW(window->GetHandle(), kHotkeyMessage,
+                         static_cast<WPARAM>(hotkey.id), 0);
+        }
+        return 1;
+      }
+    }
+  }
+  return ::CallNextHookEx(nullptr, code, wparam, lparam);
+}
+
 void FlutterWindow::DispatchHotkey(int id) {
   if (hotkey_channel_) {
     hotkey_channel_->InvokeMethod(
@@ -138,6 +197,11 @@ void FlutterWindow::HandleHotkeyMethodCall(
       result->Success(flutter::EncodableValue(true));
       return;
     }
+    if (EnsureLowLevelHook()) {
+      low_level_hotkeys_.push_back({id, modifiers, key, false});
+      result->Success(flutter::EncodableValue(true));
+      return;
+    }
     result->Success(flutter::EncodableValue(false));
     return;
   }
@@ -149,6 +213,10 @@ void FlutterWindow::HandleHotkeyMethodCall(
     const int id = ReadInt(*arguments, "id");
     const bool unregistered = ::UnregisterHotKey(GetHandle(), id) != 0;
     hotkey_ids_.erase(id);
+    low_level_hotkeys_.erase(
+        std::remove_if(low_level_hotkeys_.begin(), low_level_hotkeys_.end(),
+                       [id](const LowLevelHotkey& h) { return h.id == id; }),
+        low_level_hotkeys_.end());
     result->Success(flutter::EncodableValue(unregistered));
     return;
   }
@@ -158,6 +226,7 @@ void FlutterWindow::HandleHotkeyMethodCall(
       all_released = (::UnregisterHotKey(GetHandle(), id) != 0) && all_released;
     }
     hotkey_ids_.clear();
+    ReleaseLowLevelHook();
     result->Success(flutter::EncodableValue(all_released));
     return;
   }
@@ -200,6 +269,9 @@ FlutterWindow::MessageHandler(HWND hwnd, UINT const message,
 
   switch (message) {
     case WM_HOTKEY:
+      DispatchHotkey(static_cast<int>(wparam));
+      return 0;
+    case kHotkeyMessage:
       DispatchHotkey(static_cast<int>(wparam));
       return 0;
     case kOutsideClickMessage:
