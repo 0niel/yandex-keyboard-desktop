@@ -6,6 +6,7 @@ import 'package:lucide_flutter/lucide_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:yandex_keyboard_desktop/src/app/diagnostic_log.dart';
+import 'package:yandex_keyboard_desktop/src/app/frame_settle.dart';
 import 'package:yandex_keyboard_desktop/src/platform/overlay/overlay_interaction_channel.dart';
 import 'package:yandex_keyboard_desktop/src/platform/overlay/overlay_window_gateway.dart';
 import 'package:yandex_keyboard_desktop/src/features/text_assistant/application/text_replacement_controller.dart';
@@ -510,6 +511,11 @@ class TextAssistantOverlayState extends State<TextAssistantOverlay> {
         _noticeKindForState(controller.state) != kind) {
       return;
     }
+    // Busy stages emit several states that all map to the same notice kind
+    // (loading). Re-running the whole native placement for each of them
+    // (SetWindowPos + FRAMECHANGED + ShowWindow) makes the loading animation
+    // stutter, so skip when this notice is already presented.
+    if (_presentedNoticeKind == kind && _sessionShown) return;
     final desiredSize = noticeWindowSizeFor(
       MediaQuery.maybeOf(context)?.textScaler ?? TextScaler.noScaling,
       kind: kind,
@@ -548,9 +554,14 @@ class TextAssistantOverlayState extends State<TextAssistantOverlay> {
       );
       if (!_placementIsCurrent(generation)) return false;
       final previousBounds = _lastNativeBounds;
-      if (!freshPresentation &&
-          previousBounds != null &&
-          previousBounds != placement.nativeBounds) {
+      // Only animate pure moves: every animation step that changes the window
+      // size forces a synchronous swapchain resize, which visibly stutters
+      // any in-flight content animation (e.g. the processing indicator).
+      final isPureMove = previousBounds != null &&
+          previousBounds != placement.nativeBounds &&
+          (previousBounds.width - placement.nativeBounds.width).abs() < 1 &&
+          (previousBounds.height - placement.nativeBounds.height).abs() < 1;
+      if (!freshPresentation && isPureMove) {
         await _animateNativeBounds(
           nativePlacement,
           placement,
@@ -586,7 +597,7 @@ class TextAssistantOverlayState extends State<TextAssistantOverlay> {
     await windowManager.setMinimumSize(fittedSize);
     if (!_placementIsCurrent(generation)) return false;
     if (freshPresentation) _replayEntrance();
-    await WidgetsBinding.instance.endOfFrame;
+    await settleFrame();
     if (!_placementIsCurrent(generation)) return false;
     if (gateway case final NativeOwnedOverlayActivationGateway activation) {
       await activation.showOwnedWindowInactive();

@@ -17,6 +17,7 @@ import 'package:yandex_keyboard_desktop/src/app_ui/app_controls.dart';
 import 'package:yandex_keyboard_desktop/src/app_ui/app_tokens.dart';
 import 'package:yandex_keyboard_desktop/src/app/desktop_surface.dart';
 import 'package:yandex_keyboard_desktop/src/app/diagnostic_log.dart';
+import 'package:yandex_keyboard_desktop/src/app/frame_settle.dart';
 import 'package:yandex_keyboard_desktop/src/app/desktop_visual_preferences.dart';
 import 'package:yandex_keyboard_desktop/src/app/ios_bootstrap.dart';
 import 'package:yandex_keyboard_desktop/src/features/settings/presentation/settings_window.dart';
@@ -413,14 +414,14 @@ class _AppState extends State<App>
   Future<void> _showHotKeyErrorSurfaceNow() async {
     if (mounted && _surface != DesktopSurface.overlay) {
       setState(() => _surface = DesktopSurface.overlay);
-      await WidgetsBinding.instance.endOfFrame;
+      await settleFrame();
     }
     const size = Size(460, 96);
     await windowManager.setMinimumSize(size);
     await windowManager.setSize(size);
     await windowManager.setAlwaysOnTop(true);
     await windowManager.center();
-    await WidgetsBinding.instance.endOfFrame;
+    await settleFrame();
     await _showOverlayWindowInactive(widget.overlayGateway);
   }
 
@@ -464,6 +465,11 @@ class _AppState extends State<App>
   }
 
   Future<void> _handleWindowHiddenNow() async {
+    // Only react to the settings window being dismissed natively (its close
+    // button hides the shared window). Overlay-driven hides are orchestrated
+    // by the overlay itself; restoring here as well races the overlay's own
+    // placement queue and clobbers the window bounds mid-presentation.
+    if (_surface != DesktopSurface.settings) return;
     widget.textOperationGate.reset();
     if (_hotKeyErrorCode == null) await _restoreOverlayWindowNow();
   }
@@ -486,16 +492,23 @@ class _AppState extends State<App>
 
   Future<bool> _ensureOverlayHostSurface() async {
     var ready = false;
+    diag('ensureOverlayHostSurface: requested (surface=$_surface)');
     await _runSurfaceTransition(() async {
+      diag('ensureOverlayHostSurface: transition started');
       if (_surface == DesktopSurface.overlay) {
         ready = true;
         return;
       }
-      if (!await _confirmSettingsExitIfNeeded()) return;
+      if (!await _confirmSettingsExitIfNeeded()) {
+        diag('ensureOverlayHostSurface: discard declined');
+        return;
+      }
       if (!mounted) return;
       setState(() => _surface = DesktopSurface.overlay);
+      diag('ensureOverlayHostSurface: hiding settings window');
       await windowManager.hide();
-      await WidgetsBinding.instance.endOfFrame;
+      await settleFrame();
+      diag('ensureOverlayHostSurface: ready');
       ready = true;
     });
     return ready;
@@ -549,6 +562,16 @@ class _AppState extends State<App>
 
   Future<bool> _confirmSettingsExitIfNeeded() async {
     if (!widget.settingsController.state.isDirty) return true;
+    // The discard dialog renders inside the shared window; make sure it is
+    // visible and focused, otherwise the confirmation silently blocks the
+    // surface-transition queue while sitting in a background window.
+    if (_surface == DesktopSurface.settings) {
+      await _bestEffort(() async {
+        await _setNativeWindowCanActivate(widget.overlayGateway, true);
+        await windowManager.show();
+        await windowManager.focus();
+      });
+    }
     return await _settingsWindowKey.currentState?.confirmDiscardIfNeeded() ??
         false;
   }
@@ -643,7 +666,7 @@ class _AppState extends State<App>
     await _bestEffort(() => windowManager.setMovable(true));
     try {
       await _setNativeWindowCanActivate(widget.overlayGateway, true);
-      await WidgetsBinding.instance.endOfFrame;
+      await settleFrame();
       await windowManager.show();
       await windowManager.focus();
     } catch (_) {
@@ -675,6 +698,9 @@ class _AppState extends State<App>
         if (!await _confirmSettingsExitIfNeeded()) return;
       }
       setState(() => _surface = DesktopSurface.overlay);
+      // Hide the (large, activatable) settings window before morphing it
+      // into the compact overlay so the resize never plays out on screen.
+      await _bestEffort(windowManager.hide);
     }
     var resolvedTarget = targetHandle;
     if (resolvedTarget == null &&
@@ -691,7 +717,7 @@ class _AppState extends State<App>
     await OverlayWindowController.initialize(
       size: overlaySize,
     );
-    await WidgetsBinding.instance.endOfFrame;
+    await settleFrame();
     await _showOverlayWindowInactive(widget.overlayGateway);
   }
 
@@ -702,7 +728,7 @@ class _AppState extends State<App>
     );
     if (mounted && _surface != DesktopSurface.overlay) {
       setState(() => _surface = DesktopSurface.overlay);
-      await WidgetsBinding.instance.endOfFrame;
+      await settleFrame();
     }
     await OverlayWindowController.initialize(size: overlaySize);
     if (show) {
