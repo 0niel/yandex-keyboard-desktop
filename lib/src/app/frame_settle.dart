@@ -15,8 +15,7 @@ Future<void> settleFrame({
   Duration timeout = const Duration(milliseconds: 350),
 }) {
   final binding = WidgetsBinding.instance;
-  if (!binding.framesEnabled &&
-      binding.schedulerPhase == SchedulerPhase.idle) {
+  if (!binding.framesEnabled && binding.schedulerPhase == SchedulerPhase.idle) {
     binding.scheduleForcedFrame();
   }
   return binding.endOfFrame.timeout(timeout, onTimeout: () {});
