@@ -14,7 +14,7 @@ dependencies:
   http: ^1.6.0
   flutter_bloc: ^9.1.1
   equatable: ^2.0.8
-  win32: ^5.5.1
+  win32: ^5.15.0
   hotkey_manager: ^0.2.3
   ffi: ^2.1.2
   tray_manager: ^0.2.3
